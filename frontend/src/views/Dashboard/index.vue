@@ -183,7 +183,7 @@ async function fetchDashboardData() {
     const totalContainers = inventoryR.status === 'fulfilled' ? (inventoryR.value?.total ?? 0) : -1
     const seaToday = seaInR.status === 'fulfilled' ? (seaInR.value?.total ?? 0) : -1
     const landToday = landInR.status === 'fulfilled' ? (landInR.value?.total ?? 0) : -1
-    const zones = zonesR.status === 'fulfilled' ? (zonesR.data ?? []) : []
+    const zones = zonesR.status === 'fulfilled' ? (zonesR.value?.data ?? []) : []
     const pendingCount = pendingR.status === 'fulfilled' ? (pendingR.value?.total ?? 0) : -1
     const ops = opsR.status === 'fulfilled' ? (opsR.value?.items ?? []) : []
 
