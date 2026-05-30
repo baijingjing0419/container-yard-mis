@@ -53,11 +53,11 @@ export const useUserStore = defineStore('user', () => {
 
 export function getDefaultRoute(role: string): string {
   const map: Record<string, string> = {
-    admin: '/dispatch',
+    admin: '/dashboard',
     dispatcher: '/dispatch',
     gate_clerk: '/land/inbound',
     qc_op: '/sea/inbound',
     yc_op: '/yard/move',
   }
-  return map[role] || '/dispatch'
+  return map[role] || '/dashboard'
 }

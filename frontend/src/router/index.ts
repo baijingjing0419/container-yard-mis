@@ -12,9 +12,9 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: MainLayout,
-    redirect: '/dispatch',
+    redirect: '/dashboard',
     children: [
-
+      { path: 'dashboard', name: 'Dashboard', component: () => import('../views/Dashboard/index.vue'), meta: { title: '运营总览', roles: ['admin', 'dispatcher'] } },
       { path: 'sea/inbound', name: 'SeaInbound', component: () => import('../views/SeaInbound/index.vue'), meta: { title: '海侧进箱作业', roles: ['admin', 'qc_op', 'yc_op'] } },
       { path: 'sea/outbound', name: 'SeaOutbound', component: () => import('../views/SeaOutbound/index.vue'), meta: { title: '海侧出场作业', roles: ['admin', 'qc_op', 'yc_op'] } },
       { path: 'sea/plan', name: 'SeaPlan', component: () => import('../views/SeaPlan/index.vue'), meta: { title: '海侧作业计划', roles: ['admin', 'dispatcher'] } },
@@ -26,7 +26,6 @@ const routes: RouteRecordRaw[] = [
       { path: 'dispatch', name: 'Dispatch', component: () => import('../views/Dispatch/index.vue'), meta: { title: '中控调度指令', roles: ['admin', 'dispatcher', 'qc_op', 'yc_op'] } },
       { path: 'query', name: 'Query', component: () => import('../views/Query/index.vue'), meta: { title: '箱量/状态查询', roles: ['admin', 'dispatcher', 'gate_clerk', 'qc_op', 'yc_op'] } },
       { path: 'statistics', name: 'Statistics', component: () => import('../views/Statistics/index.vue'), meta: { title: '作业效率统计', roles: ['admin', 'dispatcher'] } },
-
 
     ],
   },
