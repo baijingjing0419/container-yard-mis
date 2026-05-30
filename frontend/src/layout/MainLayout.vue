@@ -6,12 +6,6 @@
       <p>Container Terminal Yard Management</p>
     </div>
     <div class="nav-menu">
-      <div v-if="showOverviewSection" class="nav-section-title">总览</div>
-      <router-link v-if="hasPermission('/dashboard')" to="/dashboard" class="nav-item">
-        <i class="fas fa-chart-line"></i>
-        <span>运营总览 Dashboard</span>
-      </router-link>
-
       <div v-if="showSeaSection" class="nav-section-title">海侧作业管理</div>
       <router-link v-if="hasPermission('/sea/inbound')" to="/sea/inbound" class="nav-item">
         <i class="fas fa-arrow-down"></i>
@@ -63,10 +57,7 @@
         <i class="fas fa-chart-bar"></i>
         <span>作业效率统计</span>
       </router-link>
-      <router-link v-if="hasPermission('/reports')" to="/reports" class="nav-item">
-        <i class="fas fa-file-alt"></i>
-        <span>报表中心</span>
-      </router-link>
+
 
     </div>
   </aside>
@@ -134,7 +125,7 @@ const router = useRouter()
 const userStore = useUserStore()
 const appStore = useAppStore()
 
-const pageTitle = computed(() => route.meta?.title || '运营总览')
+const pageTitle = computed(() => route.meta?.title || 'MIS')
 
 function handleLogout() {
   userStore.logout()
@@ -155,8 +146,6 @@ function hasPermission(path: string): boolean {
   return roles.includes(userStore.role)
 }
 
-const showOverviewSection = computed(() => hasPermission('/dashboard'))
-
 const showSeaSection = computed(() =>
   hasPermission('/sea/inbound') || hasPermission('/sea/outbound') || hasPermission('/sea/plan')
 )
@@ -170,7 +159,7 @@ const showYardSection = computed(() =>
 )
 
 const showQuerySection = computed(() =>
-  hasPermission('/query') || hasPermission('/statistics') || hasPermission('/reports')
+  hasPermission('/query') || hasPermission('/statistics')
 )
 
 onMounted(() => { appStore.fetchNotifications() })
