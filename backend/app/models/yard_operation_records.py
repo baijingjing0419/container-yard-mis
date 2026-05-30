@@ -13,7 +13,10 @@ class YardOperationRecord(Base):
         Index("idx_yard_op_time", "start_time", "end_time"),
     )
 
-    # 作业记录号（主键），如 YM-20260528-089
+    # 代理键（高效 join）
+    id: Mapped[int] = mapped_column(Integer, autoincrement=True, unique=True, nullable=False, comment="代理键")
+
+    # 作业记录号（业务主键），如 YM-20260528-089
     record_id: Mapped[str] = mapped_column(String(30), primary_key=True, comment="作业记录号")
 
     # 作业类型：shift=翻箱, land=落箱, pick=提箱, flip=倒箱, inspect=查验

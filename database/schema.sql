@@ -341,6 +341,7 @@ CREATE TABLE yard_container_inventory (
 -- 关联过程: 场内调箱作业(C)、集装箱堆存日常管理/海侧陆侧进出箱作业(U)
 -- ========================================================
 CREATE TABLE yard_operation_records (
+    id                  INT AUTO_INCREMENT UNIQUE NOT NULL COMMENT '代理键',
     record_id           VARCHAR(30) PRIMARY KEY COMMENT '作业记录号',
     operation_type      VARCHAR(20) NOT NULL COMMENT '作业类型(shift/land/pick/flip/inspect)',
 
@@ -377,7 +378,7 @@ CREATE TABLE yard_operation_records (
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (container_id) REFERENCES sea_inbound_containers(container_id),
+    FOREIGN KEY (container_id) REFERENCES containers_master(container_id),
     FOREIGN KEY (original_slot_id) REFERENCES yard_slots(slot_id),
     FOREIGN KEY (target_slot_id) REFERENCES yard_slots(slot_id)
 ) ENGINE=InnoDB COMMENT='堆场作业记录表(D8)';
@@ -387,6 +388,7 @@ CREATE TABLE yard_operation_records (
 -- 关联过程: 场内作业计划/中控调度(C)、场内调箱/海侧陆侧进出箱作业(U)
 -- ========================================================
 CREATE TABLE dispatch_orders (
+    id                  INT AUTO_INCREMENT UNIQUE NOT NULL COMMENT '代理键',
     order_id            VARCHAR(30) PRIMARY KEY COMMENT '指令号',
     order_type          VARCHAR(20) NOT NULL COMMENT '指令类型(sea_inbound/sea_outbound/land_inbound/land_outbound/yard_shift)',
 
@@ -401,7 +403,6 @@ CREATE TABLE dispatch_orders (
 
     -- 集装箱信息
     container_id        VARCHAR(20) COMMENT '箱号',
-    container_type      VARCHAR(10) COMMENT '箱型',
     original_position   VARCHAR(20) COMMENT '原位置',
     target_position     VARCHAR(20) COMMENT '目标位置',
 
@@ -424,7 +425,9 @@ CREATE TABLE dispatch_orders (
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (container_id) REFERENCES sea_inbound_containers(container_id),
+    FOREIGN KEY (container_id) REFERENCES containers_master(container_id),
+    FOREIGN KEY (original_position) REFERENCES yard_slots(slot_id) ON DELETE SET NULL,
+    FOREIGN KEY (target_position) REFERENCES yard_slots(slot_id) ON DELETE SET NULL,
     FOREIGN KEY (related_ship_id) REFERENCES ships(ship_id)
 ) ENGINE=InnoDB COMMENT='场内调度指令信息表(D9)';
 

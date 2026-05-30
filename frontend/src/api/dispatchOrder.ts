@@ -1,6 +1,7 @@
 import api from './request'
 
 export interface DispatchOrder {
+  id?: number
   order_id: string
   order_type: string
   execute_dept?: string

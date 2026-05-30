@@ -56,7 +56,8 @@ mis/
 │   ├── migrations/                     # 增量迁移脚本
 │   │   ├── 001_optimize_v2.sql         # V2 架构升级（主数据表 + 乐观锁 + 分区）
 │   │   ├── 002_drop_occupied_slots.sql # V3 移除反范式字段
-│   │   └── 003_partition_maintenance.sql # 分区自动维护
+│   │   ├── 003_partition_maintenance.sql # 分区自动维护
+│   │   └── 004_surrogate_pk.sql         # INT代理键 + 位置FK约束
 │   └── seeds/                          # 测试种子数据
 │       ├── dev_seed.sql                # V2 架构测试数据
 │       └── cleanup_test_data.sql       # 清理测试数据
@@ -487,6 +488,7 @@ docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/sc
 docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/migrations/001_optimize_v2.sql
 docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/migrations/002_drop_occupied_slots.sql
 docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/migrations/003_partition_maintenance.sql
+docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/migrations/004_surrogate_pk.sql
 
 # 导入测试种子数据
 docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/seeds/dev_seed.sql
@@ -536,6 +538,7 @@ main ← feat/db-architecture-optimization   (DB V2 架构升级)
 | [001_optimize_v2.sql](database/migrations/001_optimize_v2.sql) | 迁移：V2 架构升级（主数据表 + 乐观锁 + 分区） |
 | [002_drop_occupied_slots.sql](database/migrations/002_drop_occupied_slots.sql) | 迁移：移除反范式字段 |
 | [003_partition_maintenance.sql](database/migrations/003_partition_maintenance.sql) | 迁移：分区自动维护 |
+| [004_surrogate_pk.sql](database/migrations/004_surrogate_pk.sql) | 迁移：INT代理键 + 位置FK约束 |
 | [dev_seed.sql](database/seeds/dev_seed.sql) | 测试种子数据（含轨迹流水） |
 | [cleanup_test_data.sql](database/seeds/cleanup_test_data.sql) | 清理测试数据脚本 |
 | [test_optimistic_lock.py](tests/test_optimistic_lock.py) | 乐观锁并发压测脚本 |
