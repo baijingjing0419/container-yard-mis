@@ -38,7 +38,7 @@ def _build_response(inv: YardContainerInventory) -> InventoryResponse:
 @router.get("", response_model=PaginatedResponse[InventoryResponse], summary="获取场内台账列表")
 async def list_inventory(
     page: int = Query(default=1, ge=1, description="页码"),
-    page_size: int = Query(default=20, ge=1, le=100, description="每页数量"),
+    page_size: int = Query(default=20, ge=1, le=1000, description="每页数量"),
     container_id: str | None = Query(None, description="按箱号过滤"),
     is_overdue: bool | None = Query(None, description="是否超期"),
     alert_level: str | None = Query(None, description="预警级别: normal/warning/critical"),

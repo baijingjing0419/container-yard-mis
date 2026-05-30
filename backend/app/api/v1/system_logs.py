@@ -14,7 +14,7 @@ router = APIRouter(prefix="/system-logs", tags=["系统日志"])
 
 @router.get("", response_model=PaginatedResponse[SystemLogResponse], summary="获取系统日志")
 async def list_logs(
-    page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=100),
+    page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=1000),
     log_type: str | None = Query(None), user_id: str | None = Query(None),
     table_name: str | None = Query(None),
     start_time: datetime | None = Query(None, description="开始时间"),

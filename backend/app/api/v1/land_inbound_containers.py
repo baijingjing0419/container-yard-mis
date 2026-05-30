@@ -29,7 +29,7 @@ def _build_response(c: LandInboundContainer) -> LandInboundResponse:
 @router.get("", response_model=PaginatedResponse[LandInboundResponse], summary="获取陆侧进箱列表")
 async def list_land_inbounds(
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=20, ge=1, le=1000),
     truck_plate: str | None = Query(None),
     process_status: str | None = Query(None),
     db: AsyncSession = Depends(get_db),

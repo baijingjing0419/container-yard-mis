@@ -14,7 +14,7 @@ router = APIRouter(prefix="/ships", tags=["船舶管理"])
 @router.get("", response_model=PaginatedResponse[ShipResponse], summary="获取船舶列表")
 async def list_ships(
     page: int = Query(default=1, ge=1, description="页码"),
-    page_size: int = Query(default=20, ge=1, le=100, description="每页数量"),
+    page_size: int = Query(default=20, ge=1, le=1000, description="每页数量"),
     db: AsyncSession = Depends(get_db),
 ):
     """分页查询所有船舶，按创建时间倒序排列"""

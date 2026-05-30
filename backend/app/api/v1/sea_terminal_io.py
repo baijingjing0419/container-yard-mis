@@ -21,7 +21,7 @@ def _build(io: SeaTerminalIO) -> TerminalIOResponse:
 
 @router.get("", response_model=PaginatedResponse[TerminalIOResponse], summary="获取码头统筹列表")
 async def list_terminal_io(
-    page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=100),
+    page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=1000),
     operation_status: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):

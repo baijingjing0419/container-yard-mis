@@ -38,7 +38,7 @@ def _build_response(container: SeaInboundContainer) -> SeaInboundResponse:
 @router.get("", response_model=PaginatedResponse[SeaInboundResponse], summary="获取海侧进箱列表")
 async def list_sea_inbounds(
     page: int = Query(default=1, ge=1, description="页码"),
-    page_size: int = Query(default=20, ge=1, le=100, description="每页数量"),
+    page_size: int = Query(default=20, ge=1, le=1000, description="每页数量"),
     ship_id: str | None = Query(None, description="按船名航次过滤"),
     process_status: str | None = Query(None, description="按作业状态过滤"),
     db: AsyncSession = Depends(get_db),
