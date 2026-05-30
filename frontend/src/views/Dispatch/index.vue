@@ -119,7 +119,9 @@ import { useVirtualList } from '@vueuse/core'
 import { getDispatchOrderList, createDispatchOrder } from '../../api/dispatchOrder'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
+const appStore = useAppStore()
 const list = ref([])
 const loading = ref(true)
 const showModal = ref(false)
@@ -178,7 +180,7 @@ function openCreateDialog() {
 }
 
 async function handleSave() {
-  if (!form.target_position) return alert('请输入目标位置')
+  if (!form.target_position) return appStore.showToast('请输入目标位置', 'error')
   try {
     const payload = {
       order_id: form.order_id,
@@ -194,7 +196,7 @@ async function handleSave() {
     }
     await createDispatchOrder(payload)
     showModal.value = false
-    alert('下发成功！指令号: ' + form.order_id)
+    appStore.showToast('下发成功', 'success')
     fetchData()
   } catch (_) { /* handled by interceptor */ }
 }

@@ -68,6 +68,8 @@ function statusClass(s) { return { pending:'pending', gate_checking:'processing'
 function statusText(s) { return { pending:'待处理', gate_checking:'核验中', landed:'已落箱', completed:'已完成' }[s] || s }
 async function fetchData() { loading.value=true; try { const d=await getLandInboundList({page_size:100}); list.value=d?.items||[] } finally { loading.value=false } }
 function openCreate() { Object.assign(form,{container_id:'',container_type:'40HQ',truck_plate:'',driver_name:'',document_no:'',ship_id:'',process_status:'pending'}); showModal.value=true }
-async function handleSave() { if(!form.container_id)return alert('请输入箱号'); try{await createLandInbound({...form});showModal.value=false;alert('新增成功');fetchData()}catch(_){} }
+const appStore = useAppStore()
+
+async function handleSave() { if(!form.container_id)return appStore.showToast('请输入箱号', 'error'); try{await createLandInbound({...form});showModal.value=false;appStore.showToast('新增成功', 'success');fetchData()}catch(_){} }
 onMounted(fetchData)
 </script>

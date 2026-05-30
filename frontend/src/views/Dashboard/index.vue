@@ -92,6 +92,7 @@ import { getDispatchOrderList } from '../../api/dispatchOrder'
 import { getOperationList } from '../../api/yardOperation'
 import { getSeaInboundList } from '../../api/seaInbound'
 import { getLandInboundList } from '../../api/landInbound'
+import { useAppStore } from '../../store/app'
 
 const loading = ref(true)
 const error = ref(false)
@@ -104,6 +105,7 @@ const yardSlotMap = reactive({})
 const yardRefs = reactive({})
 const alerts = ref([])
 const trendCanvas = ref(null)
+const appStore = useAppStore()
 let chartInstance = null
 
 const statCards = reactive([

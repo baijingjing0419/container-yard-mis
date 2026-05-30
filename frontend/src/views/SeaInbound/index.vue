@@ -151,14 +151,16 @@ function openCreateDialog() {
   showModal.value = true
 }
 
+const appStore = useAppStore()
+
 async function handleSave() {
-  if (!form.container_id) return alert('请输入箱号')
-  if (!form.ship_id) return alert('请输入船名航次')
-  if (!form.voyage_no) return alert('请输入航次号')
+  if (!form.container_id) return appStore.showToast('请输入箱号', 'error')
+  if (!form.ship_id) return appStore.showToast('请输入船名航次', 'error')
+  if (!form.voyage_no) return appStore.showToast('请输入航次号', 'error')
   try {
     await createSeaInbound({ ...form })
     showModal.value = false
-    alert('新增成功')
+    appStore.showToast('新增成功', 'success')
     fetchData()
   } catch (_) { /* error already handled by interceptor */ }
 }

@@ -63,6 +63,8 @@ function opStatusClass(s) { return { pending:'pending', in_progress:'processing'
 function opStatusText(s) { return { pending:'待执行', in_progress:'进行中', completed:'已完成', cancelled:'已取消' }[s] || s }
 async function fetchData() { loading.value=true; try { const d=await getOperationList({page_size:100}); list.value=d?.items||[] } finally { loading.value=false } }
 function openCreate() { const now=new Date(); form.record_id='YM-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+String(Math.floor(Math.random()*1000)).padStart(3,'0'); form.operation_type='shift'; form.container_id=''; form.original_slot_id=''; form.target_slot_id=''; form.equipment_id=''; form.operator_name=''; showModal.value=true }
-async function handleSave() { if(!form.container_id)return alert('请输入箱号'); try{await createOperation({...form});showModal.value=false;alert('新增成功');fetchData()}catch(_){} }
+const appStore = useAppStore()
+
+async function handleSave() { if(!form.container_id)return appStore.showToast('请输入箱号', 'error'); try{await createOperation({...form});showModal.value=false;appStore.showToast('新增成功', 'success');fetchData()}catch(_){} }
 onMounted(fetchData)
 </script>

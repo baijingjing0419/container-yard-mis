@@ -7,6 +7,14 @@ interface Notification {
   type: 'warning' | 'alert' | 'info'
 }
 
+interface Toast {
+  id: number
+  message: string
+  type: 'success' | 'error' | 'info'
+}
+
+let toastId = 0
+
 export const useAppStore = defineStore('app', () => {
   const notifications = ref<Notification[]>([
     { id: 1, text: '堆场A区-12B 集装箱超期滞留', type: 'warning' },
@@ -16,8 +24,8 @@ export const useAppStore = defineStore('app', () => {
     { id: 5, text: '新调度指令待确认', type: 'info' },
   ])
   const sidebarCollapsed = ref(false)
-
   const unreadCount = ref(notifications.value.length)
+  const toasts = ref<Toast[]>([])
 
   function toggleSidebar() {
     sidebarCollapsed.value = !sidebarCollapsed.value
@@ -28,5 +36,11 @@ export const useAppStore = defineStore('app', () => {
     unreadCount.value = notifications.value.length
   }
 
-  return { notifications, sidebarCollapsed, unreadCount, toggleSidebar, clearNotification }
+  function showToast(message: string, type: Toast['type'] = 'info') {
+    const id = ++toastId
+    toasts.value.push({ id, message, type })
+    setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id) }, 3000)
+  }
+
+  return { notifications, sidebarCollapsed, unreadCount, toasts, toggleSidebar, clearNotification, showToast }
 })

@@ -75,6 +75,8 @@ function statusClass(s) { return { planned:'pending', picking:'processing', tran
 function statusText(s) { return { planned:'已计划', picking:'提箱中', transiting:'转运中', loaded:'已装船', completed:'已完成' }[s] || s }
 async function fetchData() { loading.value=true; try { const d=await getSeaOutboundList({page_size:100}); list.value=d?.items||[] } finally { loading.value=false } }
 function openCreate() { Object.assign(form,{container_id:'',container_type:'40HQ',ship_id:'',voyage_no:'',stowage_position:'',original_slot_id:'',customs_status:'cleared',process_status:'planned'}); showModal.value=true }
-async function handleSave() { if(!form.container_id)return alert('请输入箱号'); if(!form.ship_id)return alert('请输入船名航次'); if(!form.voyage_no)return alert('请输入航次号'); try{await createSeaOutbound({...form});showModal.value=false;alert('新增成功');fetchData()}catch(_){} }
+const appStore = useAppStore()
+
+async function handleSave() { if(!form.container_id)return appStore.showToast('请输入箱号', 'error'); if(!form.ship_id)return appStore.showToast('请输入船名航次', 'error'); if(!form.voyage_no)return appStore.showToast('请输入航次号', 'error'); try{await createSeaOutbound({...form});showModal.value=false;appStore.showToast('新增成功', 'success');fetchData()}catch(_){} }
 onMounted(fetchData)
 </script>

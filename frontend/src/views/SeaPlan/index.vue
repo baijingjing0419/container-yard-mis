@@ -60,6 +60,8 @@ function planStatusClass(s) { return { draft:'pending', approved:'processing', e
 function planStatusText(s) { return { draft:'草稿', approved:'已批准', executing:'执行中', completed:'已完成', cancelled:'已取消' }[s] || s }
 async function fetchData() { loading.value=true; try { const d=await getSeaPlanList({page_size:100}); list.value=d?.items||[] } finally { loading.value=false } }
 function openCreate() { Object.assign(form,{plan_id:'',plan_type:'discharge',voyage_no:'',ship_id:'',planned_inbound:0,planned_outbound:0,plan_status:'draft'}); showModal.value=true }
-async function handleSave() { if(!form.plan_id)return alert('请输入计划编号'); if(!form.voyage_no)return alert('请输入航次号'); if(!form.ship_id)return alert('请输入船舶编号'); try{await createSeaPlan({...form});showModal.value=false;alert('新增成功');fetchData()}catch(_){} }
+const appStore = useAppStore()
+
+async function handleSave() { if(!form.plan_id)return appStore.showToast('请输入计划编号', 'error'); if(!form.voyage_no)return appStore.showToast('请输入航次号', 'error'); if(!form.ship_id)return appStore.showToast('请输入船舶编号', 'error'); try{await createSeaPlan({...form});showModal.value=false;appStore.showToast('新增成功', 'success');fetchData()}catch(_){} }
 onMounted(fetchData)
 </script>

@@ -56,6 +56,8 @@ function planStatusText(s) { return { draft:'草稿', approved:'已批准', exec
 function formatTimeRange(start, end) { const s=start?start.substring(0,16):'--'; const e=end?end.substring(11,16):'--'; return `${s} - ${e}` }
 async function fetchData() { loading.value=true; try { const d=await getLandPlanList({page_size:100}); list.value=d?.items||[] } finally { loading.value=false } }
 function openCreate() { Object.assign(form,{plan_id:'',plan_type:'inbound_outbound',planned_container_count:0,assigned_gate_lanes:'',plan_status:'draft'}); showModal.value=true }
-async function handleSave() { if(!form.plan_id)return alert('请输入计划编号'); try{await createLandPlan({...form});showModal.value=false;alert('新增成功');fetchData()}catch(_){} }
+const appStore = useAppStore()
+
+async function handleSave() { if(!form.plan_id)return appStore.showToast('请输入计划编号', 'error'); try{await createLandPlan({...form});showModal.value=false;appStore.showToast('新增成功', 'success');fetchData()}catch(_){} }
 onMounted(fetchData)
 </script>

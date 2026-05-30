@@ -448,3 +448,10 @@ body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #f1f5
 .alert-info { background: rgba(59, 130, 246, 0.1); color: #1e40af; border: 1px solid rgba(59, 130, 246, 0.2); }
 .alert-success { background: rgba(34, 197, 94, 0.1); color: #16a34a; border: 1px solid rgba(34, 197, 94, 0.2); }
 .alert-warning { background: rgba(249, 115, 22, 0.1); color: #c2410c; border: 1px solid rgba(249, 115, 22, 0.2); }
+
+.toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+.toast { padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #fff; display: flex; align-items: center; gap: 8px; animation: toastIn 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 200px; max-width: 400px; }
+.toast-success { background: #16a34a; }
+.toast-error { background: #dc2626; }
+.toast-info { background: #2563eb; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }

@@ -70,6 +70,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useVirtualList } from '@vueuse/core'
 import { getInventoryList, createInventory } from '../../api/yardInventory'
+import { useAppStore } from '../../store/app'
 import api from '../../api/request'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
@@ -83,6 +84,8 @@ const { list: virtualList, containerProps, wrapperProps } = useVirtualList(list,
 async function fetchData() { loading.value=true; try { const p={page_size:500}; if(searchQuery.value)p.container_id=searchQuery.value; const d=await getInventoryList(p); list.value=d?.items||[] } finally { loading.value=false } }
 async function fetchZones() { try { const r = await api.get('/yard-zones'); zones.value = r.data || [] } catch (_) {} }
 function openCreate() { Object.assign(form,{container_id:'',container_type:'40HQ',ship_id:'',current_slot_id:'',source_type:'sea_inbound',container_status:'in_yard'}); showModal.value=true }
-async function handleSave() { if(!form.container_id)return alert('请输入箱号'); try{await createInventory({...form});showModal.value=false;alert('新增成功');fetchData()}catch(_){} }
+const appStore = useAppStore()
+
+async function handleSave() { if(!form.container_id)return appStore.showToast('请输入箱号', 'error'); try{await createInventory({...form});showModal.value=false;appStore.showToast('新增成功', 'success');fetchData()}catch(_){} }
 onMounted(() => { fetchData(); fetchZones() })
 </script>
