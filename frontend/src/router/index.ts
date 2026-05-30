@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import MainLayout from '../layout/MainLayout.vue'
 import { useUserStore, getDefaultRoute } from '../store/user'
-import axios from 'axios'
+import api from '../api/request'
+
+let setupCached: boolean | null = null
 
 const routes: RouteRecordRaw[] = [
   {
@@ -51,13 +53,16 @@ router.beforeEach(async (to, _from, next) => {
   // 公开页面直接放行
   if (to.meta?.public) { next(); return }
 
-  // 检查系统初始化状态
-  try {
-    const { data } = await axios.get('/api/v1/system/status')
-    if (data.setup_required) {
-      if (to.path !== '/setup') { next('/setup'); return }
-    }
-  } catch { /* API 不可用时继续 */ }
+  // 检查系统初始化状态（缓存结果，避免每次导航都请求）
+  if (setupCached === null) {
+    try {
+      const { data } = await api.get('/system/status')
+      setupCached = data.setup_required
+    } catch { setupCached = false }
+  }
+  if (setupCached) {
+    if (to.path !== '/setup') { next('/setup'); return }
+  }
 
   const userStore = useUserStore()
   if (!userStore.loggedIn) {

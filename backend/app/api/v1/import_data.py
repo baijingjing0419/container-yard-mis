@@ -12,6 +12,7 @@ from app.core.database import get_db
 from app.models.users import User
 from app.models.ships import Ship
 from app.models.containers_master import ContainerMaster
+from app.api.deps import RoleChecker
 
 router = APIRouter(prefix="/import", tags=["数据导入"])
 
@@ -81,6 +82,7 @@ async def upload_csv(
     file: UploadFile = File(...),
     table: str = Form(...),
     db: AsyncSession = Depends(get_db),
+    _current_user = Depends(RoleChecker(["admin"])),
 ):
     """上传 CSV 文件，解析后批量导入指定表"""
     if table not in TABLE_COLUMNS:
