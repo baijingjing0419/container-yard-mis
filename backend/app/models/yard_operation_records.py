@@ -25,6 +25,7 @@ class YardOperationRecord(Base):
     container_id: Mapped[str] = mapped_column(
         String(20), ForeignKey("containers_master.container_id"), nullable=False, comment="箱号"
     )
+    container_type: Mapped[str | None] = mapped_column(String(10), comment="箱型: 20GP/40GP/40HQ/45HQ")
 
     # 原堆位（外键关联箱位表）
     original_slot_id: Mapped[str | None] = mapped_column(

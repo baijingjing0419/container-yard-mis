@@ -18,6 +18,9 @@ class YardContainerInventory(Base):
     container_id: Mapped[str] = mapped_column(
         String(20), ForeignKey("containers_master.container_id"), nullable=False, index=True, comment="箱号"
     )
+    container_type: Mapped[str] = mapped_column(
+        String(10), nullable=False, comment="箱型: 20GP/40GP/40HQ/45HQ"
+    )
     container_status: Mapped[str] = mapped_column(
         String(20), default="in_yard", index=True, comment="箱状态: in_yard/in_transit/outbound/damaged"
     )

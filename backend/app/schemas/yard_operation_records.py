@@ -9,6 +9,7 @@ class OperationCreate(BaseModel):
     record_id: str = Field(..., max_length=30, description="作业记录号")
     operation_type: str = Field(..., max_length=20, description="作业类型: shift/land/pick/flip/inspect")
     container_id: str = Field(..., max_length=20, description="箱号")
+    container_type: str | None = Field(None, max_length=10, description="箱型: 20GP/40GP/40HQ/45HQ")
     original_slot_id: str | None = Field(None, max_length=20, description="原堆位")
     target_slot_id: str | None = Field(None, max_length=20, description="目标堆位")
     equipment_id: str | None = Field(None, max_length=20, description="作业机械编号")
@@ -34,6 +35,7 @@ class OperationResponse(BaseModel):
     record_id: str
     operation_type: str
     container_id: str
+    container_type: str | None = None
     original_slot_id: str | None = None
     target_slot_id: str | None = None
     equipment_id: str | None = None
