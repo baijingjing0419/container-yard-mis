@@ -41,7 +41,7 @@ def _build_response(op: YardOperationRecord) -> OperationResponse:
 @router.get("", response_model=PaginatedResponse[OperationResponse], summary="获取作业记录列表")
 async def list_operations(
     page: int = Query(default=1, ge=1, description="页码"),
-    page_size: int = Query(default=20, ge=1, le=100, description="每页数量"),
+    page_size: int = Query(default=20, ge=1, le=1000, description="每页数量"),
     operation_type: str | None = Query(None, description="作业类型: shift/land/pick/flip/inspect"),
     operation_status: str | None = Query(None, description="作业状态"),
     container_id: str | None = Query(None, description="按箱号过滤"),

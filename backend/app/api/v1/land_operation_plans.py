@@ -13,7 +13,7 @@ router = APIRouter(prefix="/land-plans", tags=["陆侧作业计划"])
 
 @router.get("", response_model=PaginatedResponse[LandPlanResponse], summary="陆侧计划列表")
 async def list_plans(
-    page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=100),
+    page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=1000),
     plan_status: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):

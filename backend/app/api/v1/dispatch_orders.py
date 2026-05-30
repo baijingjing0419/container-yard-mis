@@ -34,7 +34,7 @@ def _build_response(order: DispatchOrder) -> DispatchResponse:
 @router.get("", response_model=PaginatedResponse[DispatchResponse], summary="获取调度指令列表")
 async def list_dispatch_orders(
     page: int = Query(default=1, ge=1, description="页码"),
-    page_size: int = Query(default=20, ge=1, le=100, description="每页数量"),
+    page_size: int = Query(default=20, ge=1, le=1000, description="每页数量"),
     execution_status: str | None = Query(None, description="按执行状态过滤"),
     order_type: str | None = Query(None, description="按指令类型过滤"),
     db: AsyncSession = Depends(get_db),

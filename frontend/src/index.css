@@ -197,6 +197,12 @@ body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #f1f5
 }
 .data-table tr:hover td { background: #f8fafc; }
 
+/* ── Virtual Scroll ── */
+.virtual-scroll-container {
+  height: 560px;
+  overflow: auto;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;

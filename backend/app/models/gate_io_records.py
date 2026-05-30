@@ -11,9 +11,9 @@ class GateIORecord(Base):
 
     record_id: Mapped[str] = mapped_column(String(30), primary_key=True, comment="通行记录号")
     gate_lane_no: Mapped[str | None] = mapped_column(String(10), comment="闸口通道号")
-    io_type: Mapped[str] = mapped_column(String(10), nullable=False, comment="进出类型: inbound/outbound")
+    io_type: Mapped[str] = mapped_column(String(10), nullable=False, index=True, comment="进出类型: inbound/outbound")
 
-    truck_plate: Mapped[str] = mapped_column(String(20), nullable=False, comment="车牌号码")
+    truck_plate: Mapped[str] = mapped_column(String(20), nullable=False, index=True, comment="车牌号码")
     driver_name: Mapped[str | None] = mapped_column(String(50), comment="司机姓名")
 
     container_id: Mapped[str | None] = mapped_column(String(20), comment="箱号")

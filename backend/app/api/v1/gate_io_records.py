@@ -16,7 +16,7 @@ router = APIRouter(prefix="/gate-records", tags=["闸口通行管理"])
 @router.get("", response_model=PaginatedResponse[GateRecordResponse], summary="获取闸口通行记录")
 async def list_gate_records(
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=20, ge=1, le=1000),
     truck_plate: str | None = Query(None, description="按车牌过滤"),
     io_type: str | None = Query(None, description="进出类型: inbound/outbound"),
     release_status: str | None = Query(None, description="放行状态: pending/approved/rejected"),

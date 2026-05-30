@@ -80,13 +80,13 @@
       <div class="user-info">
         <div class="notification-btn" @click="toggleNotifications">
           <i class="fas fa-bell" style="color: #64748b;"></i>
-          <span class="badge">5</span>
+          <span class="badge">{{ appStore.unreadCount }}</span>
         </div>
         <div style="text-align: right;">
-          <div style="font-size: 14px; font-weight: 600; color: #1e293b;">中控调度员</div>
-          <div style="font-size: 12px; color: #94a3b8;">调度中心 - 当班</div>
+          <div style="font-size: 14px; font-weight: 600; color: #1e293b;">{{ userStore.displayName }}</div>
+          <div style="font-size: 12px; color: #94a3b8;">{{ userStore.department }} - {{ userStore.shift }}</div>
         </div>
-        <div class="user-avatar">调</div>
+        <div class="user-avatar">{{ userStore.realName.charAt(0) }}</div>
       </div>
     </div>
 
@@ -99,11 +99,17 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useUserStore } from '../store/user'
+import { useAppStore } from '../store/app'
 
 const route = useRoute()
+const userStore = useUserStore()
+const appStore = useAppStore()
+
 const pageTitle = computed(() => route.meta?.title || '运营总览')
 
 function toggleNotifications() {
-  alert('通知中心：\n\n1. 堆场A区-12B 集装箱超期滞留\n2. 海侧作业计划延误\n3. 闸口通行拥堵预警\n4. 场桥设备维护提醒\n5. 新调度指令待确认')
+  const msgs = appStore.notifications.map(n => `${n.id}. ${n.text}`).join('\n')
+  alert('通知中心：\n\n' + msgs)
 }
 </script>

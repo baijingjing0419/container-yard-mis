@@ -16,14 +16,14 @@ class YardContainerInventory(Base):
 
     # 箱号（外键关联海侧进箱表）
     container_id: Mapped[str] = mapped_column(
-        String(20), ForeignKey("sea_inbound_containers.container_id"), nullable=False, comment="箱号"
+        String(20), ForeignKey("sea_inbound_containers.container_id"), nullable=False, index=True, comment="箱号"
     )
 
     # 箱型
     container_type: Mapped[str] = mapped_column(String(10), nullable=False, comment="箱型")
 
     # 箱状态：in_yard=在堆, in_transit=转运中, outbound=待出场, damaged=残损
-    container_status: Mapped[str] = mapped_column(String(20), default="in_yard", comment="箱状态")
+    container_status: Mapped[str] = mapped_column(String(20), default="in_yard", index=True, comment="箱状态")
 
     # 当前位置（外键关联箱位表）
     current_slot_id: Mapped[str | None] = mapped_column(
@@ -48,9 +48,9 @@ class YardContainerInventory(Base):
     pickup_plan_id: Mapped[str | None] = mapped_column(String(30), comment="提箱计划")
 
     # 预警标记
-    is_overdue: Mapped[bool] = mapped_column(Boolean, default=False, comment="是否超期滞留")
+    is_overdue: Mapped[bool] = mapped_column(Boolean, default=False, index=True, comment="是否超期滞留")
     overdue_days: Mapped[int] = mapped_column(Integer, default=0, comment="超期天数")
-    alert_level: Mapped[str] = mapped_column(String(10), default="normal", comment="预警级别: normal/warning/critical")
+    alert_level: Mapped[str] = mapped_column(String(10), default="normal", index=True, comment="预警级别: normal/warning/critical")
 
     # 来源追踪
     source_type: Mapped[str | None] = mapped_column(String(20), comment="来源类型: sea_inbound/land_inbound")

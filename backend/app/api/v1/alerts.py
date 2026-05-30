@@ -14,7 +14,7 @@ router = APIRouter(prefix="/alerts", tags=["异常告警"])
 
 @router.get("", response_model=PaginatedResponse[AlertResponse], summary="获取告警列表")
 async def list_alerts(
-    page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=100),
+    page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=1000),
     alert_level: str | None = Query(None), alert_type: str | None = Query(None),
     is_resolved: bool | None = Query(None),
     db: AsyncSession = Depends(get_db),

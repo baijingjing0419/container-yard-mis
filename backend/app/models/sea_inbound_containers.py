@@ -20,7 +20,7 @@ class SeaInboundContainer(Base):
 
     # 船名航次（外键关联 ships）
     ship_id: Mapped[str] = mapped_column(
-        String(20), ForeignKey("ships.ship_id"), nullable=False, comment="船名航次"
+        String(20), ForeignKey("ships.ship_id"), nullable=False, index=True, comment="船名航次"
     )
 
     # 航次号
