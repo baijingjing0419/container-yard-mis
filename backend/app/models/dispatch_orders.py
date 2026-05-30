@@ -14,7 +14,7 @@ class DispatchOrder(Base):
     order_id: Mapped[str] = mapped_column(String(30), primary_key=True, comment="指令号")
 
     # 指令类型：sea_inbound/sea_outbound/land_inbound/land_outbound/yard_shift
-    order_type: Mapped[str] = mapped_column(String(20), nullable=False, comment="指令类型")
+    order_type: Mapped[str] = mapped_column(String(20), nullable=False, index=True, comment="指令类型")
 
     # 时间信息
     issue_time: Mapped[datetime] = mapped_column(DateTime, nullable=False, comment="下达时间")
@@ -27,7 +27,7 @@ class DispatchOrder(Base):
 
     # 集装箱信息
     container_id: Mapped[str | None] = mapped_column(
-        String(20), ForeignKey("sea_inbound_containers.container_id"), comment="箱号"
+        String(20), ForeignKey("sea_inbound_containers.container_id"), index=True, comment="箱号"
     )
     container_type: Mapped[str | None] = mapped_column(String(10), comment="箱型")
 
@@ -42,7 +42,7 @@ class DispatchOrder(Base):
     priority_level: Mapped[str] = mapped_column(String(10), default="normal", comment="优先级")
 
     # 执行状态：issued/acknowledged/in_progress/completed/cancelled
-    execution_status: Mapped[str] = mapped_column(String(20), default="issued", comment="执行状态")
+    execution_status: Mapped[str] = mapped_column(String(20), default="issued", index=True, comment="执行状态")
 
     # 执行进度百分比
     execution_progress: Mapped[Decimal | None] = mapped_column(DECIMAL(5, 2), default=0, comment="执行进度")

@@ -14,7 +14,7 @@ class YardOperationRecord(Base):
     record_id: Mapped[str] = mapped_column(String(30), primary_key=True, comment="作业记录号")
 
     # 作业类型：shift=翻箱, land=落箱, pick=提箱, flip=倒箱, inspect=查验
-    operation_type: Mapped[str] = mapped_column(String(20), nullable=False, comment="作业类型")
+    operation_type: Mapped[str] = mapped_column(String(20), nullable=False, index=True, comment="作业类型")
 
     # 箱号（外键关联海侧进箱表）
     container_id: Mapped[str] = mapped_column(

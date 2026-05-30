@@ -27,7 +27,7 @@ class YardSlot(Base):
     tier_num: Mapped[int] = mapped_column(Integer, default=1, comment="层号")
 
     # 状态：empty=空闲, occupied=已占用, reserved=预留, maintenance=维护
-    slot_status: Mapped[str] = mapped_column(String(20), default="empty", comment="状态")
+    slot_status: Mapped[str] = mapped_column(String(20), default="empty", index=True, comment="状态")
 
     # 当前存放集装箱号
     current_container_id: Mapped[str | None] = mapped_column(String(20), comment="当前存放箱号")
