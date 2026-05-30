@@ -78,9 +78,9 @@
         <span>{{ pageTitle }}</span>
       </div>
       <div class="user-info">
-        <div class="notification-btn" @click="toggleNotifications">
+        <div class="notification-btn" @click="appStore.toggleNotificationPanel()">
           <i class="fas fa-bell" style="color: #64748b;"></i>
-          <span class="badge">{{ appStore.unreadCount }}</span>
+          <span v-if="appStore.unreadCount" class="badge">{{ appStore.unreadCount }}</span>
         </div>
         <div style="text-align: right;">
           <div style="font-size: 14px; font-weight: 600; color: #1e293b;">{{ userStore.displayName }}</div>
@@ -88,6 +88,22 @@
         </div>
         <div class="user-avatar">{{ userStore.realName.charAt(0) }}</div>
       </div>
+
+      <div v-if="appStore.showNotificationPanel" class="notification-panel">
+        <div class="notification-panel-header">
+          <span>通知中心</span>
+          <button class="btn btn-sm btn-secondary" @click="appStore.fetchNotifications()">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+        <div v-if="!appStore.notifications.length" style="text-align:center;padding:30px;color:#94a3b8;font-size:13px;">暂无通知</div>
+        <div v-for="n in appStore.notifications" :key="n.id" class="notification-item" @click="appStore.clearNotification(n.id)">
+          <div :class="['notification-dot', n.type]"></div>
+          <div class="notification-text">{{ n.text }}</div>
+          <i class="fas fa-times" style="color:#cbd5e1;font-size:10px;cursor:pointer;"></i>
+        </div>
+      </div>
+      <div v-if="appStore.showNotificationPanel" class="notification-backdrop" @click="appStore.showNotificationPanel = false"></div>
     </div>
 
     <div class="content-area">
@@ -104,7 +120,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '../store/user'
 import { useAppStore } from '../store/app'
@@ -115,8 +131,5 @@ const appStore = useAppStore()
 
 const pageTitle = computed(() => route.meta?.title || '运营总览')
 
-function toggleNotifications() {
-  const msgs = appStore.notifications.map(n => `${n.id}. ${n.text}`).join('\n')
-  alert('通知中心：\n\n' + msgs)
-}
+onMounted(() => { appStore.fetchNotifications() })
 </script>

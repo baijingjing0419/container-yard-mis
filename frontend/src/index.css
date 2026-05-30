@@ -455,3 +455,14 @@ body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #f1f5
 .toast-error { background: #dc2626; }
 .toast-info { background: #2563eb; }
 @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
+.notification-panel { position: absolute; top: 72px; right: 24px; width: 340px; max-height: 400px; overflow-y: auto; background: #fff; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); z-index: 1100; }
+.notification-panel-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e2e8f0; font-size: 15px; font-weight: 600; color: #1e293b; }
+.notification-item { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.15s; }
+.notification-item:hover { background: #f8fafc; }
+.notification-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.notification-dot.warning { background: #f97316; }
+.notification-dot.alert { background: #ef4444; }
+.notification-dot.info { background: #3b82f6; }
+.notification-text { flex: 1; font-size: 13px; color: #475569; line-height: 1.4; }
+.notification-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1099; }

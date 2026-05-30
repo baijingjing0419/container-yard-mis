@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import api from '../api/request'
 
 interface Notification {
   id: number
@@ -16,24 +17,39 @@ interface Toast {
 let toastId = 0
 
 export const useAppStore = defineStore('app', () => {
-  const notifications = ref<Notification[]>([
-    { id: 1, text: '堆场A区-12B 集装箱超期滞留', type: 'warning' },
-    { id: 2, text: '海侧作业计划延误', type: 'alert' },
-    { id: 3, text: '闸口通行拥堵预警', type: 'warning' },
-    { id: 4, text: '场桥设备维护提醒', type: 'info' },
-    { id: 5, text: '新调度指令待确认', type: 'info' },
-  ])
+  const notifications = ref<Notification[]>([])
   const sidebarCollapsed = ref(false)
-  const unreadCount = ref(notifications.value.length)
+  const unreadCount = ref(0)
   const toasts = ref<Toast[]>([])
+  const showNotificationPanel = ref(false)
 
   function toggleSidebar() {
     sidebarCollapsed.value = !sidebarCollapsed.value
   }
 
+  function toggleNotificationPanel() {
+    showNotificationPanel.value = !showNotificationPanel.value
+  }
+
   function clearNotification(id: number) {
     notifications.value = notifications.value.filter(n => n.id !== id)
     unreadCount.value = notifications.value.length
+  }
+
+  async function fetchNotifications() {
+    try {
+      const { data } = await api.get('/alerts', { params: { is_resolved: false, page_size: 10 } })
+      const items = data?.items || []
+      notifications.value = items.map((a: any) => ({
+        id: a.alert_id,
+        text: a.alert_title || '告警',
+        type: a.alert_level === 'critical' ? 'alert' as const : a.alert_level === 'warning' ? 'warning' as const : 'info' as const,
+      }))
+      unreadCount.value = notifications.value.length
+    } catch {
+      notifications.value = []
+      unreadCount.value = 0
+    }
   }
 
   function showToast(message: string, type: Toast['type'] = 'info') {
@@ -42,5 +58,8 @@ export const useAppStore = defineStore('app', () => {
     setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id) }, 3000)
   }
 
-  return { notifications, sidebarCollapsed, unreadCount, toasts, toggleSidebar, clearNotification, showToast }
+  return {
+    notifications, sidebarCollapsed, unreadCount, toasts, showNotificationPanel,
+    toggleSidebar, toggleNotificationPanel, clearNotification, fetchNotifications, showToast,
+  }
 })

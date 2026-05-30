@@ -38,18 +38,17 @@
       <div class="card">
         <div class="card-header">
           <div class="card-title"><i class="fas fa-bell" style="margin-right: 8px; color: #f97316;"></i>实时告警</div>
-          <span v-if="alerts.length" class="status-badge warning"><span class="dot red"></span>{{ alerts.length }} 条未处理</span>
+          <span v-if="appStore.unreadCount" class="status-badge warning"><span class="dot red"></span>{{ appStore.unreadCount }} 条未处理</span>
           <span v-else class="status-badge completed">暂无告警</span>
         </div>
         <div class="card-body">
-          <div v-if="alertsLoading" style="text-align:center;padding:40px;color:#94a3b8;">加载中...</div>
-          <div v-else-if="!alerts.length" style="text-align:center;padding:40px;color:#94a3b8;">当前无未处理告警</div>
+          <div v-if="!appStore.notifications.length" style="text-align:center;padding:40px;color:#94a3b8;">当前无未处理告警</div>
           <div class="timeline" v-else>
-            <div class="timeline-item" v-for="a in alerts" :key="a.alert_id">
-              <div class="timeline-dot" :style="alertDotStyle(a.alert_level)"></div>
-              <div class="timeline-time">{{ a.created_at ? a.created_at.substring(11, 19) : '--' }}</div>
-              <div class="timeline-title">{{ a.alert_title }}</div>
-              <div class="timeline-content">{{ a.alert_content || '无详情' }}</div>
+            <div class="timeline-item" v-for="n in appStore.notifications" :key="n.id">
+              <div class="timeline-dot" :style="{ background: n.type === 'alert' ? '#ef4444' : n.type === 'warning' ? '#f97316' : '#3b82f6', boxShadow: `0 0 0 2px ${n.type === 'alert' ? '#ef4444' : n.type === 'warning' ? '#f97316' : '#3b82f6'}` }"></div>
+              <div class="timeline-time">实时</div>
+              <div class="timeline-title">{{ n.text }}</div>
+              <div class="timeline-content">来自系统告警</div>
             </div>
           </div>
         </div>
@@ -97,13 +96,11 @@ import { useAppStore } from '../../store/app'
 const loading = ref(true)
 const error = ref(false)
 const trendLoading = ref(true)
-const alertsLoading = ref(true)
 const yardLoading = ref(true)
 
 const yardZones = ref([])
 const yardSlotMap = reactive({})
 const yardRefs = reactive({})
-const alerts = ref([])
 const trendCanvas = ref(null)
 const appStore = useAppStore()
 let chartInstance = null
@@ -119,12 +116,6 @@ const statCards = reactive([
 
 function setYardRef(zoneId, el) {
   if (el) yardRefs[zoneId] = el
-}
-
-function alertDotStyle(level) {
-  const colors = { critical: '#ef4444', warning: '#f97316', info: '#3b82f6' }
-  const color = colors[level] || '#3b82f6'
-  return { background: color, boxShadow: `0 0 0 2px ${color}` }
 }
 
 function buildTrendChart(hourlySea, hourlyLand) {
@@ -254,18 +245,6 @@ async function fetchTrendData() {
   }
 }
 
-async function fetchAlerts() {
-  alertsLoading.value = true
-  try {
-    const { data } = await api.get('/alerts', { params: { is_resolved: false, page_size: 5 } })
-    alerts.value = data?.items || []
-  } catch {
-    alerts.value = []
-  } finally {
-    alertsLoading.value = false
-  }
-}
-
 async function fetchYardData() {
   yardLoading.value = true
   try {
@@ -293,7 +272,6 @@ async function fetchYardData() {
 onMounted(() => {
   fetchDashboardData()
   fetchTrendData()
-  fetchAlerts()
   fetchYardData()
 })
 </script>
