@@ -1,23 +1,8 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import MainLayout from '../layout/MainLayout.vue'
 import { useUserStore, getDefaultRoute } from '../store/user'
-import api from '../api/request'
-
-let setupCached: boolean | null = null
 
 const routes: RouteRecordRaw[] = [
-  {
-    path: '/setup',
-    name: 'Setup',
-    component: () => import('../views/Setup/index.vue'),
-    meta: { title: '系统初始化', public: true },
-  },
-  {
-    path: '/first-login',
-    name: 'FirstLogin',
-    component: () => import('../views/FirstLogin/index.vue'),
-    meta: { title: '首次登录', public: true },
-  },
   {
     path: '/login',
     name: 'Login',
@@ -50,19 +35,7 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({ history: createWebHistory(), routes })
 
 router.beforeEach(async (to, _from, next) => {
-  // 公开页面直接放行
   if (to.meta?.public) { next(); return }
-
-  // 检查系统初始化状态（缓存结果，避免每次导航都请求）
-  if (setupCached === null) {
-    try {
-      const { data } = await api.get('/system/status')
-      setupCached = data.setup_required
-    } catch { setupCached = false }
-  }
-  if (setupCached) {
-    if (to.path !== '/setup') { next('/setup'); return }
-  }
 
   const userStore = useUserStore()
   if (!userStore.loggedIn) {

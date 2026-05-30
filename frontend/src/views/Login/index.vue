@@ -13,7 +13,7 @@
 
       <div class="form-group">
         <label class="form-label">工号</label>
-        <input v-model="loginForm.user_id" class="form-input" style="font-size:14px;" placeholder="请输入工号" @keyup.enter="handleLogin" />
+        <input v-model="loginForm.user_id" class="form-input" style="font-size:14px;" placeholder="请输入工号（1-5）" @keyup.enter="handleLogin" />
       </div>
 
       <div class="form-group">
@@ -25,12 +25,6 @@
         <span v-if="loading"><i class="fas fa-spinner fa-spin"></i> 登录中...</span>
         <span v-else><i class="fas fa-sign-in-alt"></i> 登 录</span>
       </button>
-
-      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;text-align:center;">
-        <button class="btn btn-secondary" style="width:100%;padding:10px;font-size:13px;justify-content:center;" @click="devLogin">
-          <i class="fas fa-code"></i> 开发者入口（直接进入）
-        </button>
-      </div>
     </div>
   </div>
 </template>
@@ -50,17 +44,6 @@ const loginForm = ref({ user_id: '', password: '' })
 const loading = ref(false)
 const error = ref('')
 
-function devLogin() {
-  userStore.login({
-    username: 'admin',
-    realName: '管理员',
-    role: 'admin',
-    department: '信息中心',
-    accessToken: 'dev-token',
-  })
-  router.push('/dashboard')
-}
-
 async function handleLogin() {
   if (!loginForm.value.user_id) {
     error.value = '请输入工号'
@@ -70,10 +53,6 @@ async function handleLogin() {
   error.value = ''
   try {
     const { data } = await api.post('/auth/login', loginForm.value)
-    if (data.needs_password_setup) {
-      router.push('/first-login', { state: { employeeId: data.user_id, realName: data.real_name } })
-      return
-    }
     userStore.login({
       username: data.username,
       realName: data.real_name || data.username,
