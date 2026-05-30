@@ -119,10 +119,10 @@ REPLACE INTO dispatch_orders (order_id, order_type, issue_time, issue_dept, exec
 -- 7. 预置用户（复用原有数据）
 -- ========================================================
 REPLACE INTO users (user_id, username, password_hash, real_name, role, department, phone, email, status) VALUES
-('U001', 'dispatcher',  'pbkdf2:sha256:100000$aba8b12b6f9b3b1b9626911accbd68df$e92ac4bc2fba122f22e91e0c96f5056f4460c068a64ce3bc519522259e763801', '李明',  'dispatcher', '调度中心', '13800000001', 'dispatcher@yard.local',  'active'),
-('U002', 'gate_clerk',  'pbkdf2:sha256:100000$1d6d6928c68b34c510853e1c4ff16d7c$e66dbd0510672d748c39e1275782ddc79842bd461444c1a436032abab58367c5', '王芳',  'gate_clerk',  '闸口管理', '13800000002', 'gate@yard.local',       'active'),
-('U003A', 'qc_op',      'pbkdf2:sha256:100000$1ba9298243dceb57bdc60618f092c8bb$08f95b19fd587d375bac4a680bc03270417925a70d32825aaf2af349d7cc1fc1', '赵岸',  'qc_op',       '岸桥班组', '13800000003', 'qc_op@yard.local',      'active'),
-('U003B', 'yc_op',      'pbkdf2:sha256:100000$7c2feab5124f2b873ab51f71696078af$c6aee2de8c9b6a011b96c5fecf3b3a4f838eff4e9b31e3b1ca35a603962028c3', '钱场',  'yc_op',       '场桥班组', '13800000005', 'yc_op@yard.local',      'active'),
-('admin', 'admin',       'pbkdf2:sha256:100000$6af7b7c107875685df0496dea0c92c58$b228b0c6ec0a209d38357550af0dfaf4957925f954979b7f9c86f9411076b30e', '管理员','admin',       '信息中心', '13800000004', 'admin@yard.local',      'active');
+('1', 'dispatcher',  'pbkdf2:sha256:100000$a4b5b5cb3800ab20bb3c71844710c9ac$c32e4e805279d2e5ca006b8ffc15cb9ac4072f278fb9a955673db74816f7a11a', '李明',  'dispatcher', '调度中心', '13800000001', 'dispatcher@yard.local',  'active'),
+('2', 'gate_clerk',  'pbkdf2:sha256:100000$91aa7141c2ee1c325ef5bdb502880478$ff4258bc012f4c676952507a69bb4b10fadf667ac9783cd84260c3a754c97e70', '王芳',  'gate_clerk',  '闸口管理', '13800000002', 'gate@yard.local',       'active'),
+('3', 'qc_op',       'pbkdf2:sha256:100000$aba1cc89b7fab7f357f331642aba2564$098af06cdeadece719804f0798092a8420f280ff743c263d7463049fd65aa8d5', '赵岸',  'qc_op',       '岸桥班组', '13800000003', 'qc_op@yard.local',      'active'),
+('4', 'yc_op',       'pbkdf2:sha256:100000$5fe13c29d0edcbbdd14d998887e7b965$210afc380ea7fcab3c346cb09df06bace17399267ccffe34c5fe0b05e8516a76', '钱场',  'yc_op',       '场桥班组', '13800000005', 'yc_op@yard.local',      'active'),
+('admin', 'admin',   'pbkdf2:sha256:100000$eb200bbb81328c4c1ae36744bf49ef40$3545f7c0a496beb85d6307dabb93605a885a508ec46ffea6d649af7aa42cf1f0', '管理员','admin',       '信息中心', '13800000004', 'admin@yard.local',      'active');
 
 SET FOREIGN_KEY_CHECKS = 1;

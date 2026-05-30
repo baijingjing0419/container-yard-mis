@@ -27,7 +27,7 @@
       </button>
 
       <p style="text-align:center;color:#94a3b8;font-size:12px;margin-top:20px;">
-        预置工号 U001~U003B 密码 123456 | admin 密码 admin
+        预置工号 1 | 2 | 3 | 4 | admin 密码均为 123
       </p>
     </div>
   </div>
