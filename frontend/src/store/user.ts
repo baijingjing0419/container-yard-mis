@@ -1,6 +1,13 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 
+interface UserInfo {
+  username?: string
+  real_name?: string
+  role?: string
+  department?: string
+}
+
 export const useUserStore = defineStore('user', () => {
   const username = ref('dispatcher')
   const realName = ref('中控调度员')
@@ -10,11 +17,11 @@ export const useUserStore = defineStore('user', () => {
 
   const displayName = computed(() => realName.value || username.value)
   const roleLabel = computed(() => {
-    const map = { dispatcher: '中控调度员', gate_clerk: '闸口管理员', yard_op: '堆场管理员', admin: '系统管理员' }
+    const map: Record<string, string> = { dispatcher: '中控调度员', gate_clerk: '闸口管理员', yard_op: '堆场管理员', admin: '系统管理员' }
     return map[role.value] || role.value
   })
 
-  function setUser(user) {
+  function setUser(user: UserInfo) {
     if (user.username) username.value = user.username
     if (user.real_name) realName.value = user.real_name
     if (user.role) role.value = user.role

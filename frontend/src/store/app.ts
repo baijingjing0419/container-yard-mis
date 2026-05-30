@@ -1,8 +1,14 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
+interface Notification {
+  id: number
+  text: string
+  type: 'warning' | 'alert' | 'info'
+}
+
 export const useAppStore = defineStore('app', () => {
-  const notifications = ref([
+  const notifications = ref<Notification[]>([
     { id: 1, text: '堆场A区-12B 集装箱超期滞留', type: 'warning' },
     { id: 2, text: '海侧作业计划延误', type: 'alert' },
     { id: 3, text: '闸口通行拥堵预警', type: 'warning' },
@@ -17,7 +23,7 @@ export const useAppStore = defineStore('app', () => {
     sidebarCollapsed.value = !sidebarCollapsed.value
   }
 
-  function clearNotification(id) {
+  function clearNotification(id: number) {
     notifications.value = notifications.value.filter(n => n.id !== id)
     unreadCount.value = notifications.value.length
   }
