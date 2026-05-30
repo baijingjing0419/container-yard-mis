@@ -36,7 +36,6 @@ CREATE TABLE yard_zones (
     zone_name           VARCHAR(50) NOT NULL COMMENT '区域名称',
     zone_type           VARCHAR(20) NOT NULL COMMENT '区域类型(import/export/transit)',
     total_slots         INT NOT NULL COMMENT '总箱位数',
-    occupied_slots      INT DEFAULT 0 COMMENT '已占用箱位数',
     max_tier            INT DEFAULT 5 COMMENT '最大堆叠层数',
     status              VARCHAR(20) DEFAULT 'active' COMMENT '状态',
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP

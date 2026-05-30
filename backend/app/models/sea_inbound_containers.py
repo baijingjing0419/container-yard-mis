@@ -29,7 +29,7 @@ class SeaInboundContainer(Base):
     damage_status: Mapped[str] = mapped_column(String(50), default="完好", comment="残损情况")
 
     # 入场时间（场桥落箱完成时间）
-    entry_time: Mapped[datetime | None] = mapped_column(DateTime, comment="入场时间")
+    entry_time: Mapped[datetime | None] = mapped_column(DateTime, index=True, comment="入场时间")
 
     # 目标堆位（外键关联 yard_slots）
     target_slot_id: Mapped[str | None] = mapped_column(
@@ -51,7 +51,7 @@ class SeaInboundContainer(Base):
     yard_crane: Mapped[str | None] = mapped_column(String(20), comment="落箱场桥编号")
 
     # 作业状态：pending/transiting/landed/completed
-    process_status: Mapped[str] = mapped_column(String(20), default="pending", comment="作业状态")
+    process_status: Mapped[str] = mapped_column(String(20), default="pending", index=True, comment="作业状态")
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.current_timestamp(), comment="创建时间"

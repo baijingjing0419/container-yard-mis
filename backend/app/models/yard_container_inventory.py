@@ -1,6 +1,6 @@
 """场内集装箱信息表 ORM 模型 (D7) — 堆场管理的数据心脏"""
 from datetime import datetime
-from sqlalchemy import String, Integer, Boolean, DateTime, ForeignKey, func
+from sqlalchemy import String, Integer, Boolean, DateTime, ForeignKey, func, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -8,6 +8,9 @@ from app.core.database import Base
 
 class YardContainerInventory(Base):
     __tablename__ = "yard_container_inventory"
+    __table_args__ = (
+        Index("idx_inventory_overdue", "is_overdue", "alert_level"),
+    )
 
     inventory_id: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True, comment="台账记录ID"

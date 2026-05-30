@@ -15,10 +15,10 @@ REPLACE INTO ships (ship_id, ship_name, ship_type, ship_company, ship_length, sh
 ('MAERSK-8821', '马士基浩南', '集装箱船', '马士基', 399.00, 18000, 'active'),
 ('MSC-0921', '地中海航运', '集装箱船', 'MSC', 350.00, 14000, 'active');
 
-REPLACE INTO yard_zones (zone_id, zone_name, zone_type, total_slots, occupied_slots, max_tier, status) VALUES
-('A', 'A区-进口箱区', 'import', 576, 0, 5, 'active'),
-('B', 'B区-出口箱区', 'export', 576, 0, 5, 'active'),
-('C', 'C区-中转箱区', 'transfer', 576, 0, 5, 'active');
+REPLACE INTO yard_zones (zone_id, zone_name, zone_type, total_slots, max_tier, status) VALUES
+('A', 'A区-进口箱区', 'import', 576, 5, 'active'),
+('B', 'B区-出口箱区', 'export', 576, 5, 'active'),
+('C', 'C区-中转箱区', 'transfer', 576, 5, 'active');
 
 -- 预置足够箱位用于测试（包括目标位 A-01-01）
 REPLACE INTO yard_slots (slot_id, zone_id, row_num, col_num, tier_num, slot_status, current_container_id, max_weight, slot_size, version) VALUES

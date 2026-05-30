@@ -1,7 +1,7 @@
 """堆场作业记录表 ORM 模型 (D8) — 每次物理操作的执行记录"""
 from datetime import datetime
 from decimal import Decimal
-from sqlalchemy import String, Integer, DECIMAL, DateTime, ForeignKey, func, Text
+from sqlalchemy import String, Integer, DECIMAL, DateTime, ForeignKey, func, Text, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -9,6 +9,9 @@ from app.core.database import Base
 
 class YardOperationRecord(Base):
     __tablename__ = "yard_operation_records"
+    __table_args__ = (
+        Index("idx_yard_op_time", "start_time", "end_time"),
+    )
 
     # 作业记录号（主键），如 YM-20260528-089
     record_id: Mapped[str] = mapped_column(String(30), primary_key=True, comment="作业记录号")

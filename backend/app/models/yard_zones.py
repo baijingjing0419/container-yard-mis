@@ -21,9 +21,6 @@ class YardZone(Base):
     # 总箱位数
     total_slots: Mapped[int] = mapped_column(Integer, nullable=False, comment="总箱位数")
 
-    # 已占用箱位数
-    occupied_slots: Mapped[int] = mapped_column(Integer, default=0, comment="已占用箱位数")
-
     # 最大堆叠层数
     max_tier: Mapped[int] = mapped_column(Integer, default=5, comment="最大堆叠层数")
 
