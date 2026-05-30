@@ -45,11 +45,10 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=401, detail="工号不存在")
     if user.status != "active":
         raise HTTPException(status_code=403, detail="账号已被禁用")
-    if user.role != "admin":
-        if not data.password:
-            raise HTTPException(status_code=401, detail="请输入密码")
-        if not verify_password(data.password, user.password_hash):
-            raise HTTPException(status_code=401, detail="密码错误")
+    if not data.password:
+        raise HTTPException(status_code=401, detail="请输入密码")
+    if not verify_password(data.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="密码错误")
 
     # 生成 JWT（payload: sub=user_id, exp=过期时间）
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

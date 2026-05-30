@@ -12,17 +12,12 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">登录账号</label>
-        <select v-model="loginForm.user_id" class="form-input" style="font-size:14px;">
-          <option value="">-- 请选择账号 --</option>
-          <option v-for="u in presetUsers" :key="u.user_id" :value="u.user_id">
-            {{ u.label }}
-          </option>
-        </select>
+        <label class="form-label">工号</label>
+        <input v-model="loginForm.user_id" class="form-input" style="font-size:14px;" placeholder="请输入工号" @keyup.enter="handleLogin" />
       </div>
 
-      <div v-if="!isAdmin" class="form-group">
-        <label class="form-label">登录密码</label>
+      <div class="form-group">
+        <label class="form-label">密码</label>
         <input v-model="loginForm.password" type="password" class="form-input" style="font-size:14px;" placeholder="请输入密码" @keyup.enter="handleLogin" />
       </div>
 
@@ -32,14 +27,14 @@
       </button>
 
       <p style="text-align:center;color:#94a3b8;font-size:12px;margin-top:20px;">
-        预置账号，初始密码 123456
+        预置工号 U001~U003B 密码 123456 | admin 密码 admin
       </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore, getDefaultRoute } from '../../store/user'
 import { useAppStore } from '../../store/app'
@@ -49,38 +44,23 @@ const router = useRouter()
 const userStore = useUserStore()
 const appStore = useAppStore()
 
-const presetUsers = [
-  { user_id: 'U001',  label: 'U001 中控调度员 (调度中心)' },
-  { user_id: 'U002',  label: 'U002 闸口管理员 (闸口管理)' },
-  { user_id: 'U003A', label: 'U003A 岸桥操作员 (岸桥班组)' },
-  { user_id: 'U003B', label: 'U003B 场桥操作员 (场桥班组)' },
-  { user_id: 'U004',  label: 'U004 系统管理员 (信息中心) — 免密' },
-]
-
 const loginForm = ref({ user_id: '', password: '' })
 const loading = ref(false)
 const error = ref('')
-const isAdmin = computed(() =>
-  presetUsers.find(u => u.user_id === loginForm.value.user_id)?.user_id === 'U004'
-)
 
 async function handleLogin() {
   if (!loginForm.value.user_id) {
-    error.value = '请选择登录账号'
+    error.value = '请输入工号'
     return
   }
-  if (!isAdmin.value && !loginForm.value.password) {
+  if (!loginForm.value.password) {
     error.value = '请输入密码'
     return
   }
   loading.value = true
   error.value = ''
   try {
-    const payload: Record<string, string> = { user_id: loginForm.value.user_id }
-    if (!isAdmin.value) {
-      payload.password = loginForm.value.password
-    }
-    const { data } = await api.post('/auth/login', payload)
+    const { data } = await api.post('/auth/login', loginForm.value)
     userStore.login({
       username: data.username,
       realName: data.real_name || data.username,
