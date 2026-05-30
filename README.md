@@ -209,6 +209,7 @@ npm run dev
 | 场内台账 D7 | 5 | `/api/v1/yard-inventory` |
 | 作业记录 D8 | 4 | `/api/v1/yard-operations` |
 | 调度指令 D9 | 5 | `/api/v1/dispatch-orders` |
+| 集装箱主数据 D0 | 3 | `/api/v1/containers` (含轨迹查询) |
 | 海侧计划 | 4 | `/api/v1/sea-plans` |
 | 陆侧计划 | 4 | `/api/v1/land-plans` |
 | 用户管理 | 4 | `/api/v1/users` |
@@ -219,4 +220,32 @@ npm run dev
 
 - [数据库设计文档](数据库设计文档.md) — 完整表结构、字段说明、过程-数据类矩阵
 - [ER 关系图](database_er_diagram.png) — 实体关系图
-- [建库脚本](yard_mis_database.sql) — MySQL DDL + 种子数据
+- [建库脚本](yard_mis_database.sql) — MySQL DDL + 原始种子数据
+- [V2 迁移脚本](02_db_optimization_migration.sql) — V2.0 架构升级 DDL（主数据表 + 乐观锁 + 分区）
+- [V2 测试数据](v2_mock_data.sql) — V2 架构专属种子数据（含轨迹流水）
+
+## 开发指南
+
+### 数据库 V2 架构迁移
+
+```bash
+# 在已有数据库上升级到 V2 架构
+docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < 02_db_optimization_migration.sql
+docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < v2_mock_data.sql
+```
+
+### 乐观锁压测
+
+```bash
+pip install httpx
+python test_optimistic_lock.py
+# 期望: 10 并发抢占同一箱位 → 1 成功 + 9 Conflict (409)
+```
+
+### 关键端点 (v2 新增)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/v1/containers` | 集装箱主数据列表 |
+| GET | `/api/v1/containers/{id}` | 集装箱主数据详情 |
+| GET | `/api/v1/containers/{id}/move-logs` | 集装箱移动轨迹（时间倒序） |
