@@ -15,8 +15,8 @@ router = APIRouter(prefix="/auth", tags=["认证"])
 
 
 class LoginRequest(BaseModel):
-    username: str = Field(..., max_length=50, description="用户名")
-    password: str = Field(..., min_length=1, max_length=128, description="密码")
+    user_id: str = Field(..., max_length=20, description="工号")
+    password: str = Field(default="", max_length=128, description="密码")
 
 
 class LoginResponse(BaseModel):
@@ -36,17 +36,20 @@ class LoginResponse(BaseModel):
 
 @router.post("/login", response_model=LoginResponse, summary="用户登录")
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
-    """根据用户名登录，签发 JWT access token"""
+    """根据工号登录，签发 JWT access token（管理员暂免密）"""
     result = await db.execute(
-        select(User).where(User.username == data.username)
+        select(User).where(User.user_id == data.user_id)
     )
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=401, detail="用户名不存在")
+        raise HTTPException(status_code=401, detail="工号不存在")
     if user.status != "active":
         raise HTTPException(status_code=403, detail="账号已被禁用")
-    if not verify_password(data.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="密码错误")
+    if user.role != "admin":
+        if not data.password:
+            raise HTTPException(status_code=401, detail="请输入密码")
+        if not verify_password(data.password, user.password_hash):
+            raise HTTPException(status_code=401, detail="密码错误")
 
     # 生成 JWT（payload: sub=user_id, exp=过期时间）
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
