@@ -26,9 +26,11 @@
         <span v-else><i class="fas fa-sign-in-alt"></i> 登 录</span>
       </button>
 
-      <p style="text-align:center;color:#94a3b8;font-size:12px;margin-top:20px;">
-        工号 1~4 密码 123 | 工号 5 管理员入口
-      </p>
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;text-align:center;">
+        <button class="btn btn-secondary" style="width:100%;padding:10px;font-size:13px;justify-content:center;" @click="devLogin">
+          <i class="fas fa-code"></i> 开发者入口（直接进入）
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -47,6 +49,17 @@ const appStore = useAppStore()
 const loginForm = ref({ user_id: '', password: '' })
 const loading = ref(false)
 const error = ref('')
+
+function devLogin() {
+  userStore.login({
+    username: 'admin',
+    realName: '管理员',
+    role: 'admin',
+    department: '信息中心',
+    accessToken: 'dev-token',
+  })
+  router.push('/dashboard')
+}
 
 async function handleLogin() {
   if (!loginForm.value.user_id) {
