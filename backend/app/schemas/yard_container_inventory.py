@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class InventoryCreate(BaseModel):
     """新增台账记录请求体（集装箱入场落箱时触发）"""
     container_id: str = Field(..., max_length=20, description="箱号")
+    container_type: str = Field(default="40HQ", max_length=10, description="箱型: 20GP/40GP/40HQ/45HQ")
     container_status: str = Field(default="in_yard", max_length=20, description="箱状态")
     current_slot_id: str | None = Field(None, max_length=20, description="当前堆场位置")
     entry_time: datetime | None = Field(None, description="入场时间")
@@ -42,6 +43,7 @@ class InventoryResponse(BaseModel):
     """场内台账响应体 - 含关联数据展开（container_type 通过 containers_master 关联获取）"""
     inventory_id: int
     container_id: str
+    container_type: str | None = None
     container_status: str | None = None
     current_slot_id: str | None = None
     previous_slot_id: str | None = None

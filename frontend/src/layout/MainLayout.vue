@@ -9,7 +9,7 @@
       <div v-if="showOverviewSection" class="nav-section-title">总览</div>
       <router-link v-if="hasPermission('/dashboard')" to="/dashboard" class="nav-item">
         <i class="fas fa-chart-line"></i>
-        <span>运营总览 Dashboard</span>
+        <span>运营总览</span>
       </router-link>
 
       <div v-if="showSeaSection" class="nav-section-title">海侧作业管理</div>
@@ -62,10 +62,6 @@
       <router-link v-if="hasPermission('/statistics')" to="/statistics" class="nav-item">
         <i class="fas fa-chart-bar"></i>
         <span>作业效率统计</span>
-      </router-link>
-      <router-link v-if="hasPermission('/reports')" to="/reports" class="nav-item">
-        <i class="fas fa-file-alt"></i>
-        <span>报表中心</span>
       </router-link>
 
     </div>
@@ -170,7 +166,7 @@ const showYardSection = computed(() =>
 )
 
 const showQuerySection = computed(() =>
-  hasPermission('/query') || hasPermission('/statistics') || hasPermission('/reports')
+  hasPermission('/query') || hasPermission('/statistics')
 )
 
 onMounted(() => { appStore.fetchNotifications() })

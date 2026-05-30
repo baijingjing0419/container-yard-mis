@@ -16,15 +16,15 @@
         <div class="card-title">今日陆侧进箱作业列表</div>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-primary" @click="openCreate"><i class="fas fa-plus"></i> 新增进箱记录</button>
-          <button class="btn btn-secondary"><i class="fas fa-filter"></i> 筛选</button>
+
         </div>
       </div>
       <div class="card-body" style="padding:0;">
         <table class="data-table">
-          <thead><tr><th>箱号</th><th>箱型</th><th>车牌号码</th><th>司机信息</th><th>单证信息</th><th>入场时间</th><th>目标堆位</th><th>残损确认</th><th>状态</th><th>操作</th></tr></thead>
+          <thead><tr><th>箱号</th><th>箱型</th><th>车牌号码</th><th>司机信息</th><th>单证信息</th><th>入场时间</th><th>目标堆位</th><th>残损确认</th><th>状态</th></tr></thead>
           <tbody>
-            <tr v-if="loading"><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px;">加载中...</td></tr>
-            <tr v-else-if="!list.length"><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px;">暂无数据</td></tr>
+            <tr v-if="loading"><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px;">加载中...</td></tr>
+            <tr v-else-if="!list.length"><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px;">暂无数据</td></tr>
             <tr v-for="item in list" :key="item.container_id">
               <td><strong style="color:#1e40af;">{{ item.container_id }}</strong></td>
               <td>{{ item.container_type }}</td>
@@ -35,7 +35,6 @@
               <td>{{ item.target_slot_label || item.target_slot_id || '--' }}</td>
               <td><StatusBadge :status="item.damage_check === '完好' ? 'completed' : 'warning'" :text="item.damage_check || '完好'" /></td>
               <td><StatusBadge :status="statusClass(item.process_status)" :text="statusText(item.process_status)" /></td>
-              <td><button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button></td>
             </tr>
           </tbody>
         </table>

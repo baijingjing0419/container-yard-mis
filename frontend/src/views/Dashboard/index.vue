@@ -183,7 +183,7 @@ async function fetchDashboardData() {
     const totalContainers = inventoryR.status === 'fulfilled' ? (inventoryR.value?.total ?? 0) : -1
     const seaToday = seaInR.status === 'fulfilled' ? (seaInR.value?.total ?? 0) : -1
     const landToday = landInR.status === 'fulfilled' ? (landInR.value?.total ?? 0) : -1
-    const zones = zonesR.status === 'fulfilled' ? (zonesR.data ?? []) : []
+    const zones = zonesR.status === 'fulfilled' ? (zonesR.value?.data ?? []) : []
     const pendingCount = pendingR.status === 'fulfilled' ? (pendingR.value?.total ?? 0) : -1
     const ops = opsR.status === 'fulfilled' ? (opsR.value?.items ?? []) : []
 
@@ -227,10 +227,10 @@ async function fetchTrendData() {
   try {
     const { items } = await getOperationList({ page_size: 1000 })
     for (const op of items || []) {
-      if (!op.created_at) continue
-      const hour = new Date(op.created_at).getHours()
-      if (op.source_operation === 'sea') hourlySea[hour]++
-      else hourlyLand[hour]++
+      if (!op.start_time) continue
+      const hour = new Date(op.start_time).getHours()
+      if (op.source_operation?.startsWith('sea')) hourlySea[hour]++
+      else if (op.source_operation?.startsWith('land')) hourlyLand[hour]++
     }
     buildTrendChart(hourlySea, hourlyLand)
   } catch {

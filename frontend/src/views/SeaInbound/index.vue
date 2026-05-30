@@ -33,8 +33,6 @@
           <button class="btn btn-primary" @click="openCreateDialog">
             <i class="fas fa-plus"></i> 新增进箱记录
           </button>
-          <button class="btn btn-secondary"><i class="fas fa-filter"></i> 筛选</button>
-          <button class="btn btn-secondary"><i class="fas fa-download"></i> 导出</button>
         </div>
       </div>
       <div class="card-body" style="padding: 0;">
@@ -43,12 +41,12 @@
             <tr>
               <th>箱号</th><th>箱型</th><th>船名航次</th><th>舱单信息</th>
               <th>入场时间</th><th>目标堆位</th><th>残损情况</th>
-              <th>作业状态</th><th>操作</th>
+              <th>作业状态</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="loading"><td colspan="9" style="text-align:center;padding:30px;color:#94a3b8;">加载中...</td></tr>
-            <tr v-else-if="!list.length"><td colspan="9" style="text-align:center;padding:30px;color:#94a3b8;">暂无数据</td></tr>
+            <tr v-if="loading"><td colspan="8" style="text-align:center;padding:30px;color:#94a3b8;">加载中...</td></tr>
+            <tr v-else-if="!list.length"><td colspan="8" style="text-align:center;padding:30px;color:#94a3b8;">暂无数据</td></tr>
             <tr v-for="item in list" :key="item.container_id">
               <td><strong style="color:#1e40af;">{{ item.container_id }}</strong></td>
               <td>{{ item.container_type }}</td>
@@ -61,10 +59,6 @@
               </td>
               <td>
                 <StatusBadge :status="statusClass(item.process_status)" :text="statusText(item.process_status)" />
-              </td>
-              <td>
-                <button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button>
-                <button class="btn btn-sm btn-secondary"><i class="fas fa-edit"></i></button>
               </td>
             </tr>
           </tbody>
@@ -174,7 +168,7 @@ async function handleSave() {
 
 async function fetchActivePlan() {
   try {
-    const { data } = await api.get('/sea-plans', { params: { plan_status: 'in_progress', page_size: 1 } })
+    const { data } = await api.get('/sea-plans', { params: { plan_status: 'executing', page_size: 1 } })
     activePlan.value = data?.items?.[0] || null
   } catch { activePlan.value = null }
 }

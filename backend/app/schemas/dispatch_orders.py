@@ -14,7 +14,7 @@ class DispatchCreate(BaseModel):
     execute_dept: str | None = Field(None, max_length=50, description="执行部门")
     container_id: str | None = Field(None, max_length=20, description="箱号")
     original_position: str | None = Field(None, max_length=20, description="原位置")
-    target_position: str | None = Field(None, max_length=20, description="目标位置")
+    target_position: str = Field(..., max_length=20, description="目标位置")
     operation_requirement: str | None = Field(None, description="作业要求")
     priority_level: str = Field(default="normal", max_length=10, description="优先级: urgent/high/normal/low")
     related_plan_id: str | None = Field(None, max_length=30, description="关联计划号")
