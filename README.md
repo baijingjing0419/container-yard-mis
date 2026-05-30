@@ -23,7 +23,10 @@
 
 | 页面 | 路由 | 核心功能 |
 |------|------|----------|
-| **登录** | `/login` | 工号+密码登录（PBKDF2 哈希），JWT 认证，开发者免登入口 |
+| **系统初始化** | `/setup` | 首次部署向导：创建管理员 + 检测堆场配置 |
+| **首次登录** | `/first-login` | 员工首次登录设置密码 |
+| **登录** | `/login` | 工号+密码登录（PBKDF2 哈希），JWT 认证 |
+| **数据导入** | `/import` | CSV 批量导入员工、船舶、集装箱数据 |
 | **运营总览** | `/dashboard` | 6 个实时统计卡片 + 24h 作业趋势图 + 堆场热力图 + 告警时间线 |
 | **海侧进箱** | `/sea/inbound` | 卸船入场全流程，动态显示当前作业计划（主数据优先校验） |
 | **海侧出场** | `/sea/outbound` | 装船出场全流程，动态显示当前作业计划 |
@@ -57,10 +60,12 @@ mis/
 │   │   ├── 001_optimize_v2.sql         # V2 架构升级（主数据表 + 乐观锁 + 分区）
 │   │   ├── 002_drop_occupied_slots.sql # V3 移除反范式字段
 │   │   ├── 003_partition_maintenance.sql # 分区自动维护
-│   │   └── 004_surrogate_pk.sql         # INT代理键 + 位置FK约束
-│   └── seeds/                          # 测试种子数据
-│       ├── dev_seed.sql                # V2 架构测试数据
-│       └── cleanup_test_data.sql       # 清理测试数据
+│   │   ├── 004_surrogate_pk.sql         # INT代理键 + 位置FK约束
+│   │   └── 005_password_nullable.sql    # 密码字段改为可为空
+│   └── seeds/
+│       ├── yard_setup.sql               # 堆场物理布局初始化
+│       ├── dev_seed.sql                 # V2 架构测试数据(开发用)
+│       └── cleanup_test_data.sql        # 清理测试数据
 ├── docs/
 │   └── 数据库设计文档.md
 │
@@ -141,6 +146,8 @@ mis/
         │   ├── BaseModal.vue          # 通用模态框
         │   └── StatusBadge.vue        # 状态徽章
         └── views/
+            ├── Setup/index.vue        # ★ 系统初始化向导
+            ├── FirstLogin/index.vue   # ★ 首次登录设置密码
             ├── Login/index.vue        # ★ 登录页
             ├── Dashboard/index.vue    # 运营总览
             ├── SeaInbound/index.vue   # 海侧进箱

@@ -67,6 +67,10 @@
         <i class="fas fa-file-alt"></i>
         <span>报表中心</span>
       </router-link>
+      <router-link v-if="hasPermission('/import')" to="/import" class="nav-item">
+        <i class="fas fa-file-import"></i>
+        <span>数据导入</span>
+      </router-link>
     </div>
   </aside>
 

@@ -507,7 +507,7 @@ CREATE TABLE land_operation_plans (
 CREATE TABLE users (
     user_id             VARCHAR(20) PRIMARY KEY COMMENT '用户ID',
     username            VARCHAR(50) NOT NULL COMMENT '用户名',
-    password_hash       VARCHAR(255) NOT NULL COMMENT '密码哈希',
+    password_hash       VARCHAR(255) NULL COMMENT '密码哈希(NULL=待员工首次登录设置)',
     real_name           VARCHAR(50) COMMENT '真实姓名',
     role                VARCHAR(20) NOT NULL COMMENT '角色(admin/dispatcher/operator/gate_clerk/supervisor)',
     department          VARCHAR(50) COMMENT '所属部门',
@@ -554,38 +554,14 @@ CREATE TABLE alerts (
 ) ENGINE=InnoDB COMMENT='异常告警表';
 
 -- ========================================================
--- 插入基础数据
--- ========================================================
-
--- 插入船舶数据
-INSERT INTO ships (ship_id, ship_name, ship_type, ship_company, ship_length, ship_capacity) VALUES
-('COSCO-2405', '中远海运白羊座', '集装箱船', '中远海运', 399.99, 20000),
-('MAERSK-8821', '马士基浩南', '集装箱船', '马士基', 399.00, 18000),
-('EVER-1803', '长荣海运', '集装箱船', '长荣海运', 368.00, 15000),
-('MSC-0921', '地中海航运', '集装箱船', 'MSC', 350.00, 14000);
-
--- 插入堆场区域
-INSERT INTO yard_zones (zone_id, zone_name, zone_type, total_slots, max_tier) VALUES
-('A', 'A区-进口箱区', 'import', 576, 5),
-('B', 'B区-出口箱区', 'export', 576, 5),
-('C', 'C区-中转箱区', 'transit', 576, 5);
-
--- 插入用户数据
-INSERT INTO users (user_id, username, password_hash, real_name, role, department) VALUES
-('U001', 'dispatcher', '$2a$10$...', '中控调度员', 'dispatcher', '调度中心'),
-('U002', 'gate_clerk', '$2a$10$...', '闸口管理员', 'gate_clerk', '闸口管理'),
-('U003', 'yard_op', '$2a$10$...', '堆场管理员', 'operator', '堆场管理'),
-('U004', 'admin', '$2a$10$...', '系统管理员', 'admin', '信息中心');
-
--- ========================================================
 -- 创建视图 - 综合查询视图
 -- ========================================================
 
 -- 视图1: 场内集装箱综合视图
 CREATE VIEW v_yard_container_full AS
-SELECT 
+SELECT
     yci.container_id,
-    yci.container_type,
+    cm.container_type,
     yci.container_status,
     yci.current_slot_id,
     ys.zone_id,
@@ -601,6 +577,7 @@ SELECT
     sic.manifest_info,
     sic.damage_status
 FROM yard_container_inventory yci
+LEFT JOIN containers_master cm ON yci.container_id = cm.container_id
 LEFT JOIN yard_slots ys ON yci.current_slot_id = ys.slot_id
 LEFT JOIN yard_zones yz ON ys.zone_id = yz.zone_id
 LEFT JOIN ships s ON yci.ship_id = s.ship_id

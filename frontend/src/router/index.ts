@@ -1,13 +1,26 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import MainLayout from '../layout/MainLayout.vue'
 import { useUserStore, getDefaultRoute } from '../store/user'
+import axios from 'axios'
 
 const routes: RouteRecordRaw[] = [
+  {
+    path: '/setup',
+    name: 'Setup',
+    component: () => import('../views/Setup/index.vue'),
+    meta: { title: '系统初始化', public: true },
+  },
+  {
+    path: '/first-login',
+    name: 'FirstLogin',
+    component: () => import('../views/FirstLogin/index.vue'),
+    meta: { title: '首次登录', public: true },
+  },
   {
     path: '/login',
     name: 'Login',
     component: () => import('../views/Login/index.vue'),
-    meta: { title: '登录' },
+    meta: { title: '登录', public: true },
   },
   {
     path: '/',
@@ -27,14 +40,24 @@ const routes: RouteRecordRaw[] = [
       { path: 'query', name: 'Query', component: () => import('../views/Query/index.vue'), meta: { title: '箱量/状态查询', roles: ['admin', 'dispatcher', 'gate_clerk', 'qc_op', 'yc_op'] } },
       { path: 'statistics', name: 'Statistics', component: () => import('../views/Statistics/index.vue'), meta: { title: '作业效率统计', roles: ['admin', 'dispatcher'] } },
       { path: 'reports', name: 'Reports', component: () => import('../views/Reports/index.vue'), meta: { title: '报表中心', roles: ['admin'] } },
+      { path: 'import', name: 'Import', component: () => import('../views/Import/index.vue'), meta: { title: '数据导入', roles: ['admin'] } },
     ],
   },
 ]
 
 const router = createRouter({ history: createWebHistory(), routes })
 
-router.beforeEach((to, _from, next) => {
-  if (to.path === '/login') { next(); return }
+router.beforeEach(async (to, _from, next) => {
+  // 公开页面直接放行
+  if (to.meta?.public) { next(); return }
+
+  // 检查系统初始化状态
+  try {
+    const { data } = await axios.get('/api/v1/system/status')
+    if (data.setup_required) {
+      if (to.path !== '/setup') { next('/setup'); return }
+    }
+  } catch { /* API 不可用时继续 */ }
 
   const userStore = useUserStore()
   if (!userStore.loggedIn) {
