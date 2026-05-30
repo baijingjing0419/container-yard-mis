@@ -15,6 +15,7 @@ from app.schemas.dispatch_orders import (
     DispatchResponse,
 )
 from app.schemas.common import PaginatedResponse
+from app.api.deps import RoleChecker
 
 router = APIRouter(prefix="/dispatch-orders", tags=["中控调度指令"])
 
@@ -97,7 +98,11 @@ async def get_dispatch_order(order_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("", response_model=DispatchResponse, status_code=201, summary="下发调度指令")
-async def create_dispatch_order(data: DispatchCreate, db: AsyncSession = Depends(get_db)):
+async def create_dispatch_order(
+    data: DispatchCreate,
+    db: AsyncSession = Depends(get_db),
+    _current_user = Depends(RoleChecker(["admin", "dispatcher"])),
+):
     """由中控调度员下发一条新的调度指令"""
     existing = await db.get(DispatchOrder, data.order_id)
     if existing:

@@ -23,7 +23,7 @@
 
 | 页面 | 路由 | 核心功能 |
 |------|------|----------|
-| **登录** | `/login` | 下拉选择 4 个预置账号登录，localStorage 持久化会话 |
+| **登录** | `/login` | 工号+密码登录（PBKDF2 哈希），JWT 认证，开发者免登入口 |
 | **运营总览** | `/dashboard` | 6 个实时统计卡片 + 24h 作业趋势图 + 堆场热力图 + 告警时间线 |
 | **海侧进箱** | `/sea/inbound` | 卸船入场全流程，动态显示当前作业计划（主数据优先校验） |
 | **海侧出场** | `/sea/outbound` | 装船出场全流程，动态显示当前作业计划 |
@@ -64,14 +64,17 @@ mis/
 │   └── app/
 │       ├── main.py                    # FastAPI 入口（CORS + 生命周期管理）
 │       ├── core/
-│       │   ├── config.py              # pydantic-settings 配置中心
-│       │   └── database.py            # SQLAlchemy 2.0 异步引擎 + 会话管理
+│       │   ├── config.py              # pydantic-settings 配置中心（含 JWT 配置）
+│       │   ├── database.py            # SQLAlchemy 2.0 异步引擎 + 会话管理
+│       │   └── security.py            # ★ PBKDF2 密码哈希/验证（新增）
 │       ├── models/                    # 19 个 ORM 模型（含 V2 主数据表 + 流水表）
 │       ├── schemas/                   # Pydantic v2 数据验证（含 V2 新 Schema）
-│       └── api/v1/                    # 18 个 API 路由模块
-│           ├── router.py              # 路由聚合器
-│           ├── auth.py                # ★ 登录认证（新增）
-│           ├── containers.py          # ★ 集装箱主数据 + 轨迹查询（新增）
+│       └── api/
+│           ├── deps.py                # ★ JWT 认证 + RBAC 依赖注入（新增）
+│           └── v1/                    # 18 个 API 路由模块
+│               ├── router.py          # 路由聚合器
+│               ├── auth.py            # ★ 登录认证 + JWT 签发（重构）
+│               ├── containers.py      # ★ 集装箱主数据 + 轨迹查询（新增）
 │           ├── ships.py               # 船舶管理
 │           ├── yard_zones.py          # 堆场区域
 │           ├── yard_slots.py          # 箱位管理
@@ -243,6 +246,8 @@ npm run dev
 | 数据库驱动 | aiomysql + cryptography | 纯 Python MySQL 异步驱动，支持 caching_sha2_password |
 | 数据验证 | Pydantic v2 + pydantic-settings | Schema 校验 + 环境变量管理 |
 | 数据库 | MySQL 8.0 + InnoDB | 遵循第三范式，含 14 个查询索引 |
+| 认证 | JWT (python-jose) + PBKDF2 | Bearer Token 认证，密码哈希存储 |
+| 权限 | RoleChecker 依赖注入 | 闭包高阶函数，角色级 API 访问控制 |
 | 并发控制 | 乐观锁 (version 字段) | 高并发箱位预占防超卖，max 3 次重试 |
 | 冷热分离 | 表分区 (RANGE BY TO_DAYS) | 3 张日志表按月分区 |
 
@@ -253,9 +258,9 @@ npm run dev
 | 状态管理 | Pinia | user（登录态）+ app（Toast 通知） |
 | 类型 | TypeScript | API 层 + Store 层全部迁移 |
 | 构建 | Vite 5 | 代理 + 热更新 + 环境变量 |
-| 路由 | Vue Router 4 | 懒加载 + beforeEach 鉴权守卫 |
+| 路由 | Vue Router 4 | 懒加载 + beforeEach RBAC 守卫（角色-路由矩阵） |
 | 性能 | @vueuse/core | 虚拟滚动（千级数据无卡顿） |
-| HTTP | Axios | 409 乐观锁拦截 + 统一错误 Toast |
+| HTTP | Axios | 请求拦截器自动携带 JWT + 409 乐观锁拦截 + 统一错误 Toast |
 | 图表 | Chart.js 4 | 全动态数据驱动（无 Mock） |
 | 通知 | Toast 系统 | 3 秒自动消失，success/error/info 三色 |
 | CSS | Tailwind CSS 3 | 实用优先 + 自定义设计令牌 |
@@ -340,7 +345,7 @@ yard_slots.slot_id ──→ container_move_logs.from_slot_id
 
 | 模块 | 端点 | 前缀 | 说明 |
 |------|:--:|------|------|
-| 认证 | 1 | `/api/v1/auth` | ★ 登录认证（新增） |
+| 认证 | 1 | `/api/v1/auth` | ★ JWT 登录认证，PBKDF2 验密（重构） |
 | 集装箱主数据 | 3 | `/api/v1/containers` | ★ 主数据 CRUD + 轨迹查询（新增） |
 | 船舶管理 | 5 | `/api/v1/ships` | 船舶 CRUD |
 | 堆场区域 | 4 | `/api/v1/yard-zones` | 区域查询与利用率 |
@@ -353,10 +358,10 @@ yard_slots.slot_id ──→ container_move_logs.from_slot_id
 | 闸口通行 D6 | 4 | `/api/v1/gate-records` | 闸口出入 |
 | 场内台账 D7 | 5 | `/api/v1/yard-inventory` | 场内集装箱全生命周期 |
 | 作业记录 D8 | 4 | `/api/v1/yard-operations` | 含乐观锁 + 轨迹同步 |
-| 调度指令 D9 | 5 | `/api/v1/dispatch-orders` | 中控调度 |
+| 调度指令 D9 | 5 | `/api/v1/dispatch-orders` | ★ POST 受 RBAC 保护（admin+dispatcher） |
 | 海侧计划 | 4 | `/api/v1/sea-plans` | 作业计划 |
 | 陆侧计划 | 4 | `/api/v1/land-plans` | 作业计划 |
-| 用户管理 | 4 | `/api/v1/users` | 用户 CRUD |
+| 用户管理 | 4 | `/api/v1/users` | ★ POST + PUT status 受 RBAC 保护（admin） |
 | 系统日志 | 2 | `/api/v1/system-logs` | 操作日志 |
 | 异常告警 | 4 | `/api/v1/alerts` | 告警管理 |
 
@@ -366,24 +371,100 @@ yard_slots.slot_id ──→ container_move_logs.from_slot_id
 
 ## 认证与登录
 
-### 登录流程
+### 登录方式
 
-1. 访问任意页面 → 未登录 → 自动跳转 `/login`
-2. 下拉选择 4 个预置账号之一 → 点击登录
-3. 后端 `POST /api/v1/auth/login` 验证用户名存在性和状态
-4. 成功 → Pinia store 保存用户信息 + localStorage 持久化 → 跳转 Dashboard
-5. 右上角退出按钮 → 清除会话 → 返回登录页
+输入**工号 + 密码**登录，后端采用 **PBKDF2-HMAC-SHA256**（10 万次迭代）哈希存储密码，登录成功后签发 **JWT**（8 小时有效），前端自动在后续请求中携带 `Authorization: Bearer` 头。
+
+登录页面底部设有 **「开发者入口」** 按钮，点击后跳过认证直接以管理员身份进入主界面，方便开发调试。
 
 ### 预置账号
 
-| 用户名 | 角色 | 部门 | 说明 |
-|--------|------|------|------|
-| `dispatcher` | 中控调度员 | 调度中心 | 默认登录角色 |
-| `gate_clerk` | 闸口管理员 | 闸口管理 | 闸口业务 |
-| `yard_op` | 堆场管理员 | 堆场管理 | 场内作业 |
-| `admin` | 系统管理员 | 信息中心 | 系统管理 |
+| 工号 | 用户名 | 姓名 | 角色 | 部门 | 密码 |
+|------|--------|------|------|------|------|
+| `1` | dispatcher | 李明 | 中控调度员 | 调度中心 | `123` |
+| `2` | gate_clerk | 王芳 | 闸口管理员 | 闸口管理 | `123` |
+| `3` | qc_op | 赵岸 | 岸桥操作员 | 岸桥班组 | `123` |
+| `4` | yc_op | 钱场 | 场桥操作员 | 场桥班组 | `123` |
+| `5` | admin | 管理员 | 系统管理员 | 信息中心 | `123` |
 
-> 当前为简易认证模式（仅验证用户名），密码校验将在后续集成 Auth 模块时加入。
+### 登录流程
+
+1. 访问任意页面 → 未登录 → 自动跳转 `/login`
+2. 输入工号 + 密码 → 点击登录
+3. 后端 `POST /api/v1/auth/login` 校验工号存在性、账号状态、密码正确性
+4. 成功 → 返回 JWT → Pinia store 保存用户信息 + localStorage 持久化 → 按角色重定向到高频页
+5. 后续请求自动携带 `Authorization: Bearer <token>` 头
+6. 右上角退出按钮 → 清除会话 + token → 返回登录页
+
+### 认证架构
+
+```
+前端                                   后端
+┌──────────┐    POST /auth/login     ┌──────────────┐
+│  Login   │ ──{user_id, password}──→│  auth.py     │
+│  Page    │ ←──{user + JWT}──────   │  PBKDF2 验密  │
+└──────────┘                         │  签发 JWT     │
+     │                               └──────────────┘
+     │ 存储 token
+     ▼
+┌──────────┐  Authorization: Bearer  ┌──────────────┐
+│  Axios   │ ────{JWT token}───────→│  deps.py     │
+│intercept.│                         │  get_current │
+└──────────┘                         │  _user()     │
+                                     │  RoleChecker │
+                                     └──────────────┘
+                                           │
+                                     ┌──────▼───────┐
+                                     │ 受保护 API    │
+                                     │ (POST /users │
+                                     │  仅 admin)   │
+                                     └──────────────┘
+```
+
+---
+
+## RBAC 权限控制
+
+系统包含 **5 种角色**，前后端双重权限控制：
+
+### 前端 — 路由拦截 + 侧边栏过滤
+
+- 每个路由 `meta.roles` 声明允许访问的角色
+- `beforeEach` 守卫拦截越权导航并重定向到用户默认页
+- 侧边栏通过 O(1) `hasPermission()` 按需渲染菜单项和分类标题
+- 登录后按角色重定向到高频操作页
+
+### 后端 — API 权限校验
+
+- `get_current_user` 从 JWT 提取用户身份
+- `RoleChecker(allowed_roles)` 闭包依赖注入，拦截无权请求返回 403
+- 已保护端点：
+
+| 端点 | 方法 | 允许角色 |
+|------|------|----------|
+| `/api/v1/users` | POST | admin |
+| `/api/v1/users/{id}/status` | PUT | admin |
+| `/api/v1/dispatch-orders` | POST | admin, dispatcher |
+
+### 角色-路由权限矩阵
+
+| 路由 | admin(5) | dispatcher(1) | gate_clerk(2) | qc_op(3) | yc_op(4) |
+|------|:--------:|:-------------:|:-------------:|:--------:|:--------:|
+| `/dashboard` | Y | Y | - | - | - |
+| `/sea/inbound` | Y | - | - | Y | Y |
+| `/sea/outbound` | Y | - | - | Y | Y |
+| `/sea/plan` | Y | Y | - | - | - |
+| `/land/inbound` | Y | - | Y | - | Y |
+| `/land/outbound` | Y | - | Y | - | Y |
+| `/land/plan` | Y | Y | Y | - | - |
+| `/yard/storage` | Y | Y | - | - | Y |
+| `/yard/move` | Y | - | - | - | Y |
+| `/dispatch` | Y | Y | - | Y | Y |
+| `/query` | Y | Y | Y | Y | Y |
+| `/statistics` | Y | Y | - | - | - |
+| `/reports` | Y | - | - | - | - |
+
+> 登录重定向：admin→/dashboard，dispatcher→/dispatch，gate_clerk→/land/inbound，qc_op→/sea/inbound，yc_op→/yard/move
 
 ---
 

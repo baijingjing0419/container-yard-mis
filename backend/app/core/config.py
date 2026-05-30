@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     CORS_ORIGINS: str = "http://localhost:5173"
 
+    # JWT 认证配置
+    SECRET_KEY: str = "change-me-in-production-use-a-real-random-string"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 小时
+
     @property
     def database_url(self) -> str:
         """构建异步MySQL连接URL，使用 aiomysql 驱动（纯Python，无需C编译）"""

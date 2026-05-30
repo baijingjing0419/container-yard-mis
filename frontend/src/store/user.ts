@@ -2,10 +2,10 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 
 const ROLE_LABELS: Record<string, string> = {
-  dispatcher: '中控调度员', gate_clerk: '闸口管理员', yard_op: '堆场管理员', admin: '系统管理员',
+  dispatcher: '中控调度员', gate_clerk: '闸口管理员', qc_op: '岸桥操作员', yc_op: '场桥操作员', admin: '系统管理员',
 }
 const ROLE_DEPTS: Record<string, string> = {
-  dispatcher: '调度中心', gate_clerk: '闸口管理', yard_op: '堆场管理', admin: '信息中心',
+  dispatcher: '调度中心', gate_clerk: '闸口管理', qc_op: '岸桥班组', yc_op: '场桥班组', admin: '信息中心',
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -13,20 +13,22 @@ export const useUserStore = defineStore('user', () => {
   const realName = ref('')
   const role = ref('')
   const department = ref('')
+  const token = ref('')
   const loggedIn = ref(false)
 
   const displayName = computed(() => realName.value || username.value || '未登录')
   const roleLabel = computed(() => ROLE_LABELS[role.value] || role.value)
   const shift = ref('当班')
 
-  function login(user: { username: string; realName?: string; role: string; department?: string }) {
+  function login(user: { username: string; realName?: string; role: string; department?: string; accessToken?: string }) {
     username.value = user.username
     realName.value = user.realName || user.username
     role.value = user.role
     department.value = user.department || ROLE_DEPTS[user.role] || ''
+    token.value = user.accessToken || ''
     loggedIn.value = true
     localStorage.setItem('yard_user', JSON.stringify({
-      username: user.username, realName: user.realName, role: user.role, department: user.department,
+      username: user.username, realName: user.realName, role: user.role, department: user.department, accessToken: user.accessToken,
     }))
   }
 
@@ -41,10 +43,21 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function logout() {
-    username.value = ''; realName.value = ''; role.value = ''; department.value = ''
+    username.value = ''; realName.value = ''; role.value = ''; department.value = ''; token.value = ''
     loggedIn.value = false
     localStorage.removeItem('yard_user')
   }
 
-  return { username, realName, role, department, shift, loggedIn, displayName, roleLabel, login, restoreSession, logout }
+  return { username, realName, role, department, token, shift, loggedIn, displayName, roleLabel, login, restoreSession, logout }
 })
+
+export function getDefaultRoute(role: string): string {
+  const map: Record<string, string> = {
+    admin: '/dashboard',
+    dispatcher: '/dispatch',
+    gate_clerk: '/land/inbound',
+    qc_op: '/sea/inbound',
+    yc_op: '/yard/move',
+  }
+  return map[role] || '/dashboard'
+}

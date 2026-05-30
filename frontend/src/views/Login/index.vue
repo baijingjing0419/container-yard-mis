@@ -12,13 +12,13 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">选择登录账号</label>
-        <select v-model="selectedUser" class="form-input" style="font-size:14px;">
-          <option value="">-- 请选择账号 --</option>
-          <option v-for="u in presetUsers" :key="u.username" :value="u.username">
-            {{ u.label }}
-          </option>
-        </select>
+        <label class="form-label">工号</label>
+        <input v-model="loginForm.user_id" class="form-input" style="font-size:14px;" placeholder="请输入工号" @keyup.enter="handleLogin" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">密码</label>
+        <input v-model="loginForm.password" type="password" class="form-input" style="font-size:14px;" placeholder="请输入密码" @keyup.enter="handleLogin" />
       </div>
 
       <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;justify-content:center;" @click="handleLogin" :disabled="loading">
@@ -26,17 +26,19 @@
         <span v-else><i class="fas fa-sign-in-alt"></i> 登 录</span>
       </button>
 
-      <p style="text-align:center;color:#94a3b8;font-size:12px;margin-top:20px;">
-        预置账号，点击直接登录（后续接入 Auth 模块）
-      </p>
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;text-align:center;">
+        <button class="btn btn-secondary" style="width:100%;padding:10px;font-size:13px;justify-content:center;" @click="devLogin">
+          <i class="fas fa-code"></i> 开发者入口（直接进入）
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '../../store/user'
+import { useUserStore, getDefaultRoute } from '../../store/user'
 import { useAppStore } from '../../store/app'
 import api from '../../api/request'
 
@@ -44,34 +46,43 @@ const router = useRouter()
 const userStore = useUserStore()
 const appStore = useAppStore()
 
-const presetUsers = [
-  { username: 'dispatcher',  label: 'dispatcher — 中控调度员 (调度中心)' },
-  { username: 'gate_clerk',  label: 'gate_clerk — 闸口管理员 (闸口管理)' },
-  { username: 'yard_op',     label: 'yard_op — 堆场管理员 (堆场管理)' },
-  { username: 'admin',       label: 'admin — 系统管理员 (信息中心)' },
-]
-
-const selectedUser = ref('')
+const loginForm = ref({ user_id: '', password: '' })
 const loading = ref(false)
 const error = ref('')
 
+function devLogin() {
+  userStore.login({
+    username: 'admin',
+    realName: '管理员',
+    role: 'admin',
+    department: '信息中心',
+    accessToken: 'dev-token',
+  })
+  router.push('/dashboard')
+}
+
 async function handleLogin() {
-  if (!selectedUser.value) {
-    error.value = '请选择登录账号'
+  if (!loginForm.value.user_id) {
+    error.value = '请输入工号'
+    return
+  }
+  if (!loginForm.value.password) {
+    error.value = '请输入密码'
     return
   }
   loading.value = true
   error.value = ''
   try {
-    const { data } = await api.post('/auth/login', { username: selectedUser.value })
+    const { data } = await api.post('/auth/login', loginForm.value)
     userStore.login({
       username: data.username,
       realName: data.real_name || data.username,
       role: data.role,
       department: data.department || '',
+      accessToken: data.access_token,
     })
     appStore.fetchNotifications()
-    router.push('/dashboard')
+    router.push(getDefaultRoute(data.role))
   } catch (e) {
     error.value = e?.response?.data?.detail || '登录失败，请重试'
   } finally {
