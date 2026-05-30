@@ -29,36 +29,38 @@
         </div>
       </div>
       <div class="card-body" style="padding: 0;">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>指令号</th><th>指令类型</th><th>下达时间</th><th>执行部门</th>
-              <th>箱号</th><th>原位置</th><th>目标位置</th><th>计划完成</th>
-              <th>执行状态</th><th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="loading"><td colspan="10" style="text-align:center;padding:30px;color:#94a3b8;">加载中...</td></tr>
-            <tr v-else-if="!list.length"><td colspan="10" style="text-align:center;padding:30px;color:#94a3b8;">暂无数据</td></tr>
-            <tr v-for="item in list" :key="item.order_id">
-              <td><strong>{{ item.order_id }}</strong></td>
-              <td>{{ orderTypeText(item.order_type) }}</td>
-              <td>{{ item.issue_time ? item.issue_time.substring(0,16) : '--' }}</td>
-              <td>{{ item.execute_dept || '--' }}</td>
-              <td>{{ item.container_id || '--' }}</td>
-              <td>{{ item.original_position || '--' }}</td>
-              <td>{{ item.target_position || '--' }}</td>
-              <td>{{ item.planned_finish_time ? item.planned_finish_time.substring(0,16) : '--' }}</td>
-              <td>
-                <StatusBadge :status="execStatusClass(item.execution_status)" :text="execStatusText(item.execution_status)" />
-              </td>
-              <td>
-                <button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button>
-                <button class="btn btn-sm btn-secondary"><i class="fas fa-edit"></i></button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-bind="containerProps" class="virtual-scroll-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>指令号</th><th>指令类型</th><th>下达时间</th><th>执行部门</th>
+                <th>箱号</th><th>原位置</th><th>目标位置</th><th>计划完成</th>
+                <th>执行状态</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="loading"><td colspan="10" style="text-align:center;padding:30px;color:#94a3b8;">加载中...</td></tr>
+              <tr v-else-if="!list.length"><td colspan="10" style="text-align:center;padding:30px;color:#94a3b8;">暂无数据</td></tr>
+              <tr v-for="{ data: item } in virtualList" :key="item.order_id">
+                <td><strong>{{ item.order_id }}</strong></td>
+                <td>{{ orderTypeText(item.order_type) }}</td>
+                <td>{{ item.issue_time ? item.issue_time.substring(0,16) : '--' }}</td>
+                <td>{{ item.execute_dept || '--' }}</td>
+                <td>{{ item.container_id || '--' }}</td>
+                <td>{{ item.original_position || '--' }}</td>
+                <td>{{ item.target_position || '--' }}</td>
+                <td>{{ item.planned_finish_time ? item.planned_finish_time.substring(0,16) : '--' }}</td>
+                <td>
+                  <StatusBadge :status="execStatusClass(item.execution_status)" :text="execStatusText(item.execution_status)" />
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button>
+                  <button class="btn btn-sm btn-secondary"><i class="fas fa-edit"></i></button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -113,6 +115,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useVirtualList } from '@vueuse/core'
 import { getDispatchOrderList, createDispatchOrder } from '../../api/dispatchOrder'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
@@ -121,6 +124,8 @@ const list = ref([])
 const loading = ref(true)
 const showModal = ref(false)
 const stats = reactive({ total: 0, pending: 0, completed: 0 })
+
+const { list: virtualList, containerProps, wrapperProps } = useVirtualList(list, { itemHeight: 48, overscan: 10 })
 
 const defaultForm = {
   order_type: 'sea_inbound', execute_dept: '岸桥班组', container_id: '',
@@ -145,7 +150,7 @@ function execStatusText(s) {
 async function fetchData() {
   loading.value = true
   try {
-    const data = await getDispatchOrderList({ page_size: 100 })
+    const data = await getDispatchOrderList({ page_size: 500 })
     list.value = data?.items || []
     stats.total = data?.total || 0
     // 统计待执行和已完成

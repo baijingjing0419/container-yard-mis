@@ -33,28 +33,30 @@
         <button class="btn btn-secondary"><i class="fas fa-download"></i> 导出结果</button>
       </div>
       <div class="card-body" style="padding:0;">
-        <table class="data-table">
-          <thead><tr>
-            <th>箱号</th><th>箱型</th><th>箱状态</th><th>当前位置</th>
-            <th>船名航次</th><th>入场时间</th><th>预计出场</th><th>停留时长</th><th>操作</th>
-          </tr></thead>
-          <tbody>
-            <tr v-if="!searched"><td colspan="9" style="text-align:center;color:#94a3b8;padding:40px;">请输入查询条件后点击"查询"按钮</td></tr>
-            <tr v-else-if="loading"><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px;">查询中...</td></tr>
-            <tr v-else-if="!results.length"><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px;">未找到匹配记录</td></tr>
-            <tr v-for="item in results" :key="item.inventory_id">
-              <td><strong style="color:#1e40af;">{{ item.container_id }}</strong></td>
-              <td>{{ item.container_type }}</td>
-              <td><StatusBadge :status="item.is_overdue ? 'warning' : 'completed'" :text="item.is_overdue ? '超期' : '在堆'" /></td>
-              <td>{{ item.slot_label || item.current_slot_id || '--' }}</td>
-              <td>{{ item.ship_name || item.ship_id || '--' }}</td>
-              <td>{{ item.entry_time ? item.entry_time.substring(0,16) : '--' }}</td>
-              <td>{{ item.expected_exit_time ? item.expected_exit_time.substring(0,10) : '--' }}</td>
-              <td>{{ item.dwell_time_hours ? item.dwell_time_hours+'小时' : '--' }}</td>
-              <td><button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i> 详情</button></td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-bind="containerProps" class="virtual-scroll-container">
+          <table class="data-table">
+            <thead><tr>
+              <th>箱号</th><th>箱型</th><th>箱状态</th><th>当前位置</th>
+              <th>船名航次</th><th>入场时间</th><th>预计出场</th><th>停留时长</th><th>操作</th>
+            </tr></thead>
+            <tbody>
+              <tr v-if="!searched"><td colspan="9" style="text-align:center;color:#94a3b8;padding:40px;">请输入查询条件后点击"查询"按钮</td></tr>
+              <tr v-else-if="loading"><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px;">查询中...</td></tr>
+              <tr v-else-if="!results.length"><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px;">未找到匹配记录</td></tr>
+              <tr v-for="{ data: item } in virtualResults" :key="item.inventory_id">
+                <td><strong style="color:#1e40af;">{{ item.container_id }}</strong></td>
+                <td>{{ item.container_type }}</td>
+                <td><StatusBadge :status="item.is_overdue ? 'warning' : 'completed'" :text="item.is_overdue ? '超期' : '在堆'" /></td>
+                <td>{{ item.slot_label || item.current_slot_id || '--' }}</td>
+                <td>{{ item.ship_name || item.ship_id || '--' }}</td>
+                <td>{{ item.entry_time ? item.entry_time.substring(0,16) : '--' }}</td>
+                <td>{{ item.expected_exit_time ? item.expected_exit_time.substring(0,10) : '--' }}</td>
+                <td>{{ item.dwell_time_hours ? item.dwell_time_hours+'小时' : '--' }}</td>
+                <td><button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i> 详情</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -62,6 +64,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useVirtualList } from '@vueuse/core'
 import { getInventoryList } from '../../api/yardInventory'
 import StatusBadge from '../../components/StatusBadge.vue'
 
@@ -71,13 +74,15 @@ const results = ref([])
 const loading = ref(false)
 const searched = ref(false)
 
+const { list: virtualResults, containerProps, wrapperProps } = useVirtualList(results, { itemHeight: 48, overscan: 10 })
+
 async function doSearch() {
   if (!searchKeyword.value.trim()) {
     alert('请输入查询内容')
     return
   }
   const keyword = searchKeyword.value.trim()
-  const params = { page_size: 100 }
+  const params = { page_size: 500 }
 
   // 按搜索类型构造请求参数
   if (searchType.value === 'container_id') {

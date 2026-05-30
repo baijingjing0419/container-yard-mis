@@ -31,25 +31,27 @@
         </div>
       </div>
       <div class="card-body" style="padding:0;">
-        <table class="data-table">
-          <thead><tr><th>箱号</th><th>箱型</th><th>当前状态</th><th>当前堆位</th><th>历史位置</th><th>入场时间</th><th>预计出场</th><th>停留时长</th><th>船名航次</th><th>操作</th></tr></thead>
-          <tbody>
-            <tr v-if="loading"><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px;">加载中...</td></tr>
-            <tr v-else-if="!list.length"><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px;">暂无数据</td></tr>
-            <tr v-for="item in list" :key="item.inventory_id">
-              <td><strong style="color:#1e40af;">{{ item.container_id }}</strong></td>
-              <td>{{ item.container_type }}</td>
-              <td><StatusBadge :status="item.is_overdue?'warning':'completed'" :text="item.is_overdue?'超期':'在堆'" /></td>
-              <td>{{ item.slot_label || item.current_slot_id || '--' }}</td>
-              <td>{{ item.previous_slot_id || '--' }}</td>
-              <td>{{ item.entry_time ? item.entry_time.substring(0,16) : '--' }}</td>
-              <td>{{ item.expected_exit_time ? item.expected_exit_time.substring(0,10) : '--' }}</td>
-              <td>{{ item.dwell_time_hours ? item.dwell_time_hours+'小时' : '--' }}</td>
-              <td>{{ item.ship_name || item.ship_id || '--' }}</td>
-              <td><button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button><button class="btn btn-sm btn-secondary"><i class="fas fa-map-marker-alt"></i></button></td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-bind="containerProps" class="virtual-scroll-container">
+          <table class="data-table">
+            <thead><tr><th>箱号</th><th>箱型</th><th>当前状态</th><th>当前堆位</th><th>历史位置</th><th>入场时间</th><th>预计出场</th><th>停留时长</th><th>船名航次</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr v-if="loading"><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px;">加载中...</td></tr>
+              <tr v-else-if="!list.length"><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px;">暂无数据</td></tr>
+              <tr v-for="{ data: item } in virtualList" :key="item.inventory_id">
+                <td><strong style="color:#1e40af;">{{ item.container_id }}</strong></td>
+                <td>{{ item.container_type }}</td>
+                <td><StatusBadge :status="item.is_overdue?'warning':'completed'" :text="item.is_overdue?'超期':'在堆'" /></td>
+                <td>{{ item.slot_label || item.current_slot_id || '--' }}</td>
+                <td>{{ item.previous_slot_id || '--' }}</td>
+                <td>{{ item.entry_time ? item.entry_time.substring(0,16) : '--' }}</td>
+                <td>{{ item.expected_exit_time ? item.expected_exit_time.substring(0,10) : '--' }}</td>
+                <td>{{ item.dwell_time_hours ? item.dwell_time_hours+'小时' : '--' }}</td>
+                <td>{{ item.ship_name || item.ship_id || '--' }}</td>
+                <td><button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button><button class="btn btn-sm btn-secondary"><i class="fas fa-map-marker-alt"></i></button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
     <BaseModal title="新增场内台账" :visible="showModal" @close="showModal=false" @save="handleSave">
@@ -66,6 +68,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useVirtualList } from '@vueuse/core'
 import { getInventoryList, createInventory } from '../../api/yardInventory'
 import api from '../../api/request'
 import BaseModal from '../../components/BaseModal.vue'
@@ -74,7 +77,10 @@ import StatusBadge from '../../components/StatusBadge.vue'
 const list = ref([]); const loading = ref(true); const showModal = ref(false); const searchQuery = ref('')
 const zones = ref([])
 const form = reactive({ container_id:'', container_type:'40HQ', ship_id:'', current_slot_id:'', source_type:'sea_inbound', container_status:'in_yard' })
-async function fetchData() { loading.value=true; try { const p={page_size:100}; if(searchQuery.value)p.container_id=searchQuery.value; const d=await getInventoryList(p); list.value=d?.items||[] } finally { loading.value=false } }
+
+const { list: virtualList, containerProps, wrapperProps } = useVirtualList(list, { itemHeight: 48, overscan: 10 })
+
+async function fetchData() { loading.value=true; try { const p={page_size:500}; if(searchQuery.value)p.container_id=searchQuery.value; const d=await getInventoryList(p); list.value=d?.items||[] } finally { loading.value=false } }
 async function fetchZones() { try { const r = await api.get('/yard-zones'); zones.value = r.data || [] } catch (_) {} }
 function openCreate() { Object.assign(form,{container_id:'',container_type:'40HQ',ship_id:'',current_slot_id:'',source_type:'sea_inbound',container_status:'in_yard'}); showModal.value=true }
 async function handleSave() { if(!form.container_id)return alert('请输入箱号'); try{await createInventory({...form});showModal.value=false;alert('新增成功');fetchData()}catch(_){} }
