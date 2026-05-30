@@ -64,6 +64,9 @@ class SeaInboundContainer(Base):
     )
 
     # 多对一关联
+    container_master: Mapped["ContainerMaster"] = relationship(
+        "ContainerMaster", lazy="selectin"
+    )
     ship: Mapped["Ship"] = relationship("Ship", lazy="selectin")
     target_slot: Mapped["YardSlot | None"] = relationship(
         "YardSlot", foreign_keys=[target_slot_id], lazy="selectin"

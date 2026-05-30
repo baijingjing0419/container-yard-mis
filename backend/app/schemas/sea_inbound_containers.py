@@ -50,7 +50,7 @@ class SeaInboundStatusUpdate(BaseModel):
 class SeaInboundResponse(BaseModel):
     """海侧进箱记录响应体 - 含关联数据展开"""
     container_id: str
-    container_type: str
+    container_type: str | None = None
     container_status: str | None = None
     ship_id: str
     voyage_no: str
