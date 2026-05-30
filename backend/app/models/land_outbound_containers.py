@@ -9,8 +9,9 @@ from app.core.database import Base
 class LandOutboundContainer(Base):
     __tablename__ = "land_outbound_containers"
 
-    container_id: Mapped[str] = mapped_column(String(20), primary_key=True, comment="箱号")
-    container_type: Mapped[str] = mapped_column(String(10), nullable=False, comment="箱型")
+    container_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("containers_master.container_id"), primary_key=True, comment="箱号"
+    )
     container_status: Mapped[str] = mapped_column(String(20), default="ready", comment="箱状态")
 
     truck_plate: Mapped[str | None] = mapped_column(String(20), comment="车牌号码")

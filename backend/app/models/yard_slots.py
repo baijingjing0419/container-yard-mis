@@ -38,5 +38,8 @@ class YardSlot(Base):
     # 适用箱型：20GP/40GP/40HQ/all
     slot_size: Mapped[str | None] = mapped_column(String(10), comment="适用箱型")
 
+    # 乐观锁版本号（高并发预占箱位时用于防止超卖）
+    version: Mapped[int] = mapped_column(Integer, default=0, comment="乐观锁版本号")
+
     # 多对一关联：所属的堆场区域
     zone: Mapped["YardZone"] = relationship("YardZone", back_populates="slots", lazy="selectin")

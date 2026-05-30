@@ -9,13 +9,9 @@ from app.core.database import Base
 class SeaInboundContainer(Base):
     __tablename__ = "sea_inbound_containers"
 
-    # 箱号（主键）
-    container_id: Mapped[str] = mapped_column(String(20), primary_key=True, comment="箱号")
-
-    # 箱型：20GP/40GP/40HQ/45HQ
-    container_type: Mapped[str] = mapped_column(String(10), nullable=False, comment="箱型")
-
-    # 箱状态：intact=完好, damaged=残损, empty=空箱
+    container_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("containers_master.container_id"), primary_key=True, comment="箱号"
+    )
     container_status: Mapped[str] = mapped_column(String(20), default="intact", comment="箱状态")
 
     # 船名航次（外键关联 ships）

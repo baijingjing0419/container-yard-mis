@@ -27,9 +27,8 @@ class DispatchOrder(Base):
 
     # 集装箱信息
     container_id: Mapped[str | None] = mapped_column(
-        String(20), ForeignKey("sea_inbound_containers.container_id"), index=True, comment="箱号"
+        String(20), ForeignKey("containers_master.container_id"), index=True, comment="箱号"
     )
-    container_type: Mapped[str | None] = mapped_column(String(10), comment="箱型")
 
     # 位置信息
     original_position: Mapped[str | None] = mapped_column(String(20), comment="原位置")
@@ -68,7 +67,7 @@ class DispatchOrder(Base):
     )
 
     # 多对一关联
-    container: Mapped["SeaInboundContainer | None"] = relationship(
-        "SeaInboundContainer", lazy="selectin"
+    container: Mapped["ContainerMaster | None"] = relationship(
+        "ContainerMaster", lazy="selectin"
     )
     related_ship: Mapped["Ship | None"] = relationship("Ship", lazy="selectin")

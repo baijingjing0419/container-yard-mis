@@ -166,7 +166,11 @@ npm run dev
 - **开发体验**: 热重载 + HMR + 虚拟环境
 
 ### 数据库
-- 16 张业务表 + 3 张系统管理表
+- **架构优化 v2.0**：新增 `containers_master` 主数据表，解耦集装箱属性与业务流程
+- **轨迹流水**：`container_move_logs` 替代 JSON 历史字段，支持结构化轨迹追溯
+- **乐观锁**：`yard_slots.version` 防止高并发预占箱位超卖
+- **冷热分离**：`system_logs` / `gate_io_records` / `yard_operation_records` 按月分区
+- 16 张业务表 + 2 张主数据/流水表 + 3 张系统管理表
 - 3 个视图 (综合查询 / 今日汇总 / 利用率)
 - 4 个存储过程 + 2 个触发器
 - 14 个查询优化索引

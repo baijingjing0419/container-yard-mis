@@ -16,11 +16,9 @@ class YardOperationRecord(Base):
     # 作业类型：shift=翻箱, land=落箱, pick=提箱, flip=倒箱, inspect=查验
     operation_type: Mapped[str] = mapped_column(String(20), nullable=False, index=True, comment="作业类型")
 
-    # 箱号（外键关联海侧进箱表）
     container_id: Mapped[str] = mapped_column(
-        String(20), ForeignKey("sea_inbound_containers.container_id"), nullable=False, comment="箱号"
+        String(20), ForeignKey("containers_master.container_id"), nullable=False, comment="箱号"
     )
-    container_type: Mapped[str | None] = mapped_column(String(10), comment="箱型")
 
     # 原堆位（外键关联箱位表）
     original_slot_id: Mapped[str | None] = mapped_column(
@@ -62,7 +60,7 @@ class YardOperationRecord(Base):
     )
 
     # 多对一关联 — 双 FK 到同一表，必须用 foreign_keys 区分
-    container: Mapped["SeaInboundContainer"] = relationship("SeaInboundContainer", lazy="selectin")
+    container: Mapped["ContainerMaster"] = relationship("ContainerMaster", lazy="selectin")
     original_slot: Mapped["YardSlot | None"] = relationship(
         "YardSlot", foreign_keys=[original_slot_id], lazy="selectin"
     )
