@@ -84,4 +84,5 @@ async def delete_ship(ship_id: str, db: AsyncSession = Depends(get_db)):
     ship = await db.get(Ship, ship_id)
     if not ship:
         raise HTTPException(status_code=404, detail=f"船舶 {ship_id} 不存在")
-    await db.delete(ship)
+    db.delete(ship)
+    await db.flush()
