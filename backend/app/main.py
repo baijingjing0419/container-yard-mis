@@ -21,20 +21,18 @@ _SEED_USERS = [
 
 
 async def _seed_users():
-    """启动时确保五个内置用户存在"""
+    """启动时确保五个内置用户存在（upsert）"""
     async with async_session_factory() as session:
         for u in _SEED_USERS:
-            existing = await session.get(User, u["user_id"])
-            if existing is None:
-                session.add(User(
-                    user_id=u["user_id"],
-                    username=u["username"],
-                    real_name=u["real_name"],
-                    role=u["role"],
-                    department=u["department"],
-                    password_hash=hash_password("123"),
-                    status="active",
-                ))
+            await session.merge(User(
+                user_id=u["user_id"],
+                username=u["username"],
+                real_name=u["real_name"],
+                role=u["role"],
+                department=u["department"],
+                password_hash=hash_password("123"),
+                status="active",
+            ))
         await session.commit()
 
 
