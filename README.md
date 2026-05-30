@@ -1,10 +1,44 @@
-# 集装箱码头堆场管理信息MIS系统
+# 集装箱码头堆场管理信息系统 (Container Yard MIS)
 
-Container Terminal Yard Management Information System
+一套完整的集装箱码头堆场管理信息系统，覆盖海侧（船舶装卸）、陆侧（闸口集卡）、场内（堆存调箱）、中控调度四大业务域。采用前后端分离架构，含 **18 个 API 模块、78 个 RESTful 端点、14 个前端页面**。
 
-## 项目简介
+---
 
-一套完整的集装箱码头堆场管理信息系统，覆盖海侧(船舶装卸)、陆侧(闸口集卡)、场内(堆存调箱)、中控调度四大业务域，包含 **71 个 RESTful API** 和 **13 个前端页面**。
+## 目录
+
+- [页面功能概览](#页面功能概览)
+- [目录结构](#目录结构)
+- [环境要求](#环境要求)
+- [快速开始](#快速开始)
+- [技术栈](#技术栈)
+- [数据库架构](#数据库架构)
+- [API 模块一览](#api-模块一览)
+- [认证与登录](#认证与登录)
+- [开发指南](#开发指南)
+- [设计文档](#设计文档)
+
+---
+
+## 页面功能概览
+
+| 页面 | 路由 | 核心功能 |
+|------|------|----------|
+| **登录** | `/login` | 下拉选择 4 个预置账号登录，localStorage 持久化会话 |
+| **运营总览** | `/dashboard` | 6 个实时统计卡片 + 24h 作业趋势图 + 堆场热力图 + 告警时间线 |
+| **海侧进箱** | `/sea/inbound` | 卸船入场全流程，动态显示当前作业计划（主数据优先校验） |
+| **海侧出场** | `/sea/outbound` | 装船出场全流程，动态显示当前作业计划 |
+| **海侧计划** | `/sea/plan` | 海侧作业计划编排与管理 |
+| **陆侧进箱** | `/land/inbound` | 集卡进闸全流程，实时闸口通行统计 |
+| **陆侧出场** | `/land/outbound` | 集卡出闸提箱管理 |
+| **陆侧计划** | `/land/plan` | 陆侧作业计划编排与管理 |
+| **堆存管理** | `/yard/storage` | 集装箱台账 + 区域利用率 + **导轨查询（虚拟滚动）** |
+| **调箱作业** | `/yard/move` | 场内翻箱/归位，**409 乐观锁冲突自动提示** |
+| **调度指令** | `/dispatch` | 中控调度指令下发与执行追踪（虚拟滚动） |
+| **箱量查询** | `/query` | 按箱号/船名/堆位多维度查询（虚拟滚动） |
+| **效率统计** | `/statistics` | 班组效率 + 月度趋势 + 设备利用率（全动态图表） |
+| **报表中心** | `/reports` | 系统日志与报表历史查看 |
+
+---
 
 ## 目录结构
 
@@ -12,44 +46,107 @@ Container Terminal Yard Management Information System
 mis/
 ├── README.md
 ├── .gitignore
-├── docker-compose.yml                 # 生产环境 Docker 编排
-├── docker-compose.dev.yml             # 开发环境 (热重载)
-├── 数据库设计文档.md
-├── yard_mis_database.sql              # MySQL 完整建库脚本（含种子数据）
+├── docker-compose.yml                 # 生产环境 Docker 编排（MySQL + Backend + Frontend）
+├── docker-compose.dev.yml             # 开发环境覆盖（代码挂载 + 热重载）
+├── yard_mis_database.sql              # MySQL 初始建库脚本（含原始种子数据）
+├── 02_db_optimization_migration.sql   # V2.0 架构升级 DDL（主数据表 + 乐观锁 + 分区）
+├── v2_mock_data.sql                   # V2.0 架构测试种子数据（含轨迹流水）
+├── cleanup_test_data.sql              # 清理测试数据脚本（保留基础参考数据）
+├── test_optimistic_lock.py            # 乐观锁并发压测脚本
 ├── database_er_diagram.png            # 数据库 ER 关系图
+├── 数据库设计文档.md
 │
 ├── backend/                           # Python FastAPI 后端
-│   ├── Dockerfile                     # 生产镜像
+│   ├── Dockerfile                     # 生产镜像（python:3.12-slim）
 │   ├── .dockerignore
-│   ├── requirements.txt
-│   ├── .env.example
+│   ├── .env.example                   # 环境变量模板（含 Docker 变量说明）
+│   ├── requirements.txt               # Python 依赖清单
 │   └── app/
-│       ├── main.py                    # FastAPI 入口
-│       ├── core/                      # 配置 + 异步数据库连接
-│       ├── models/                    # SQLAlchemy ORM (16 张表, 含索引)
-│       ├── schemas/                   # Pydantic 数据验证
-│       └── api/v1/                    # RESTful API 路由 (17 个模块)
+│       ├── main.py                    # FastAPI 入口（CORS + 生命周期管理）
+│       ├── core/
+│       │   ├── config.py              # pydantic-settings 配置中心
+│       │   └── database.py            # SQLAlchemy 2.0 异步引擎 + 会话管理
+│       ├── models/                    # 19 个 ORM 模型（含 V2 主数据表 + 流水表）
+│       ├── schemas/                   # Pydantic v2 数据验证（含 V2 新 Schema）
+│       └── api/v1/                    # 18 个 API 路由模块
+│           ├── router.py              # 路由聚合器
+│           ├── auth.py                # ★ 登录认证（新增）
+│           ├── containers.py          # ★ 集装箱主数据 + 轨迹查询（新增）
+│           ├── ships.py               # 船舶管理
+│           ├── yard_zones.py          # 堆场区域
+│           ├── yard_slots.py          # 箱位管理
+│           ├── yard_container_inventory.py   # 场内台账
+│           ├── yard_operation_records.py     # 作业记录（含乐观锁）
+│           ├── dispatch_orders.py            # 调度指令
+│           ├── sea_inbound_containers.py     # 海侧进箱（含主数据优先）
+│           ├── sea_outbound_containers.py    # 海侧出场
+│           ├── sea_terminal_io.py            # 码头统筹
+│           ├── sea_operation_plans.py        # 海侧计划
+│           ├── land_inbound_containers.py    # 陆侧进箱
+│           ├── land_outbound_containers.py   # 陆侧出场
+│           ├── land_operation_plans.py       # 陆侧计划
+│           ├── gate_io_records.py            # 闸口通行
+│           ├── users.py                      # 用户管理
+│           ├── system_logs.py                # 系统日志
+│           └── alerts.py                     # 异常告警
 │
-└── frontend/                          # Vue 3 + Vite 前端
-    ├── Dockerfile                     # 生产镜像 (Nginx)
-    ├── Dockerfile.dev                 # 开发镜像 (Vite dev server)
-    ├── nginx.conf                     # Nginx 反向代理配置
+└── frontend/                          # Vue 3 + Vite + TypeScript 前端
+    ├── Dockerfile                     # 生产镜像（Node 构建 + Nginx 部署）
+    ├── Dockerfile.dev                 # 开发镜像（Vite dev server）
+    ├── nginx.conf                     # Nginx 反向代理 /api → backend:8000
     ├── .dockerignore
+    ├── index.html
     ├── package.json
-    ├── tsconfig.json                  # TypeScript 配置
-    ├── vite.config.js                 # Vite + API 代理 (环境变量)
+    ├── tsconfig.json / tsconfig.node.json
+    ├── vite.config.js                 # Vite + API 代理（VITE_API_TARGET 环境变量）
     ├── tailwind.config.js
     └── src/
-        ├── main.ts                    # Vue 入口 (Pinia 注册)
-        ├── env.d.ts                   # TypeScript 类型声明
-        ├── constants.ts               # 统一状态映射常量
-        ├── api/                       # Axios 请求层 (全部 .ts)
-        ├── store/                     # Pinia 状态管理 (user + app + toast)
-        ├── components/                # 公共组件 (BaseModal, StatusBadge)
-        ├── layout/                    # MainLayout (侧边栏+顶栏+Toast)
-        ├── router/                    # Vue Router (懒加载)
-        └── views/                     # 13 个业务视图 (虚拟滚动 + API 驱动)
+        ├── main.ts                    # Vue 入口（Pinia + Router + Toast 全局挂载）
+        ├── App.vue
+        ├── env.d.ts                   # Vue SFC 类型声明
+        ├── types.ts                   # 业务类型定义（ContainerMaster, MoveLog 等）
+        ├── constants.ts               # 状态映射常量
+        ├── index.css                  # Tailwind + 全局样式
+        ├── api/                       # Axios 请求层（全部 .ts）
+        │   ├── request.ts             # Axios 实例 + 409 拦截 + 错误处理
+        │   ├── container.ts           # ★ 集装箱主数据 + 轨迹 API
+        │   ├── dispatchOrder.ts       # 调度指令
+        │   ├── landInbound.ts         # 陆侧进箱
+        │   ├── landOutbound.ts        # 陆侧出场
+        │   ├── landPlan.ts            # 陆侧计划
+        │   ├── seaInbound.ts          # 海侧进箱
+        │   ├── seaOutbound.ts         # 海侧出场
+        │   ├── seaPlan.ts             # 海侧计划
+        │   ├── yardInventory.ts       # 场内台账
+        │   └── yardOperation.ts       # 作业记录
+        ├── store/                     # Pinia 状态管理
+        │   ├── app.ts                 # 通知 + Toast + 侧边栏
+        │   └── user.ts                # 用户登录/登出/会话恢复
+        ├── layout/
+        │   └── MainLayout.vue         # 侧边栏 + 顶栏 + Toast + 通知面板
+        ├── router/
+        │   └── index.ts               # Vue Router（懒加载 + 鉴权守卫）
+        ├── components/
+        │   ├── BaseModal.vue          # 通用模态框
+        │   └── StatusBadge.vue        # 状态徽章
+        └── views/
+            ├── Login/index.vue        # ★ 登录页
+            ├── Dashboard/index.vue    # 运营总览
+            ├── SeaInbound/index.vue   # 海侧进箱
+            ├── SeaOutbound/index.vue  # 海侧出场
+            ├── SeaPlan/index.vue      # 海侧计划
+            ├── LandInbound/index.vue  # 陆侧进箱
+            ├── LandOutbound/index.vue # 陆侧出场
+            ├── LandPlan/index.vue     # 陆侧计划
+            ├── YardStorage/index.vue  # 堆存管理（虚拟滚动 + 导轨弹窗）
+            ├── YardMove/index.vue     # 调箱作业
+            ├── Dispatch/index.vue     # 调度指令（虚拟滚动）
+            ├── Query/index.vue        # 箱量查询（虚拟滚动）
+            ├── Statistics/index.vue   # 效率统计（全动态图表）
+            └── Reports/index.vue      # 报表中心
 ```
+
+---
 
 ## 环境要求
 
@@ -58,58 +155,67 @@ mis/
 | Python | 3.10+ | 本地开发必需 |
 | Node.js | 18+ | 本地开发必需 |
 | MySQL | 8.0+ | 本地开发必需 |
-| Docker | 24+ | 容器化部署 (可选) |
+| Docker | 24+ | 容器化部署（可选，推荐） |
+
+---
 
 ## 快速开始
 
 ### 方式一：Docker 一键部署（推荐）
 
 ```bash
-# 生产模式
+# 生产模式（Nginx 部署静态文件，端口 8080）
 docker compose up -d --build
 
-# 开发模式（代码热重载，无需重建镜像）
+# 开发模式（代码挂载 + 热重载，端口 5173）
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
-| 模式 | 前端地址 | 后端地址 | 热重载 |
-|------|----------|----------|:--:|
-| 生产 | http://localhost:8080 | http://localhost:8000/docs | - |
-| 开发 | http://localhost:5173 | http://localhost:8000/docs | 是 |
+| 模式 | 前端地址 | 后端 API 文档 | 数据库端口 | 热重载 |
+|------|----------|---------------|:--:|:--:|
+| 生产 | http://localhost:8080 | http://localhost:8000/docs | 3307 | -- |
+| 开发 | http://localhost:5173 | http://localhost:8000/docs | 3307 | 是 |
+
+> **生产模式**：前端由 Nginx 部署静态文件并反向代理 `/api` 到后端，无需 CORS。  
+> **开发模式**：前端 Vite dev server 直接代理到后端（使用 `VITE_API_TARGET` 环境变量），代码修改即时生效。
 
 ### 方式二：本地开发
 
 #### 1. 初始化数据库
 
 ```bash
+# 导入初始建库脚本
 mysql -u root -p < yard_mis_database.sql
+
+# 执行 V2.0 架构升级（如数据库已存在）
+docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < 02_db_optimization_migration.sql
 ```
 
-这将创建 `ContainerTerminalDB` 数据库，包含 16 张表、3 个视图、4 个存储过程、2 个触发器和预置种子数据（4 艘船舶、3 个堆场区域、4 个用户账号）。
+这将创建 `ContainerTerminalDB` 数据库，包含 21 张表、3 个视图、4 个存储过程、2 个触发器和预置种子数据。
 
 #### 2. 启动后端
 
 ```bash
 cd backend
 
-# 创建并激活虚拟环境 (推荐)
+# 创建并激活虚拟环境
 python -m venv .venv
-.venv\Scripts\activate     # Windows
-# source .venv/bin/activate  # macOS / Linux
+source .venv/bin/activate   # macOS / Linux
+.venv\Scripts\activate      # Windows
 
 # 安装依赖
 pip install -r requirements.txt
 
-# 配置数据库连接
+# 配置环境变量（复制并编辑）
 cp .env.example .env
-# 编辑 .env，修改 DB_PASSWORD 为实际密码
+# 编辑 .env 中的 DB_PASSWORD 为实际 MySQL 密码
 
 # 启动服务
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 后端启动后访问：
-- API 文档: http://localhost:8000/docs (Swagger)
+- Swagger API 文档: http://localhost:8000/docs
 - 健康检查: http://localhost:8000/health
 
 #### 3. 启动前端
@@ -117,121 +223,186 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```bash
 cd frontend
 
-# 安装依赖
 npm install
-
-# 启动开发服务器
 npm run dev
 ```
 
-前端启动后访问: http://localhost:5173
+启动后访问 http://localhost:5173 ，会自动跳转到登录页。
 
-> 前端通过 Vite 代理将 `/api` 请求转发到后端 `http://localhost:8000`，无需单独处理跨域。
+> 前端通过 Vite 代理将 `/api` 请求转发到后端 `http://localhost:8000`。
 
-### 4. 预置账号
-
-| 用户名 | 角色 | 说明 |
-|--------|------|------|
-| dispatcher | 中控调度员 | 调度中心 |
-| gate_clerk | 闸口管理员 | 闸口管理 |
-| yard_op | 堆场管理员 | 堆场管理 |
-| admin | 系统管理员 | 信息中心 |
+---
 
 ## 技术栈
 
 ### 后端
-- **框架**: FastAPI (异步, 自动 OpenAPI 文档)
-- **ORM**: SQLAlchemy 2.0 (异步引擎 + async/await)
-- **数据库驱动**: aiomysql (纯 Python, 无需 C 编译)
-- **数据验证**: Pydantic v2 + pydantic-settings
-- **数据库**: MySQL 8.0 + InnoDB (遵循第三范式)
-- **性能**: 14 个查询索引 + 分页 + 异步连接池
+| 类别 | 技术 | 说明 |
+|------|------|------|
+| 框架 | FastAPI | 异步 Web 框架，自动生成 OpenAPI 文档 |
+| ORM | SQLAlchemy 2.0 | 异步引擎（async/await）+ 声明式映射 |
+| 数据库驱动 | aiomysql + cryptography | 纯 Python MySQL 异步驱动，支持 caching_sha2_password |
+| 数据验证 | Pydantic v2 + pydantic-settings | Schema 校验 + 环境变量管理 |
+| 数据库 | MySQL 8.0 + InnoDB | 遵循第三范式，含 14 个查询索引 |
+| 并发控制 | 乐观锁 (version 字段) | 高并发箱位预占防超卖，max 3 次重试 |
+| 冷热分离 | 表分区 (RANGE BY TO_DAYS) | 3 张日志表按月分区 |
 
 ### 前端
-- **框架**: Vue 3 (Composition API + `<script setup>`)
-- **状态管理**: Pinia (user / app / toast 通知)
-- **类型支持**: TypeScript (API 层 + Store 层全部迁移)
-- **构建工具**: Vite 5 (API 代理 + 热更新 + 环境变量)
-- **路由**: Vue Router 4 (全部懒加载)
-- **性能**: @vueuse/core 虚拟滚动 (千级数据无卡顿)
-- **HTTP 客户端**: Axios (拦截器统一错误处理)
-- **图表**: Chart.js 4 (动态数据驱动)
-- **通知**: Toast 通知系统 (替代 alert 弹窗)
-- **CSS**: Tailwind CSS 3 + 自定义 CSS 变量
-- **图标**: Font Awesome 6 (CDN)
+| 类别 | 技术 | 说明 |
+|------|------|------|
+| 框架 | Vue 3 | Composition API + `<script setup>` |
+| 状态管理 | Pinia | user（登录态）+ app（Toast 通知） |
+| 类型 | TypeScript | API 层 + Store 层全部迁移 |
+| 构建 | Vite 5 | 代理 + 热更新 + 环境变量 |
+| 路由 | Vue Router 4 | 懒加载 + beforeEach 鉴权守卫 |
+| 性能 | @vueuse/core | 虚拟滚动（千级数据无卡顿） |
+| HTTP | Axios | 409 乐观锁拦截 + 统一错误 Toast |
+| 图表 | Chart.js 4 | 全动态数据驱动（无 Mock） |
+| 通知 | Toast 系统 | 3 秒自动消失，success/error/info 三色 |
+| CSS | Tailwind CSS 3 | 实用优先 + 自定义设计令牌 |
+| 图标 | Font Awesome 6 | CDN 加载 |
 
 ### DevOps
-- **容器化**: Docker + docker compose
-- **前端部署**: Nginx 反向代理
-- **开发体验**: 热重载 + HMR + 虚拟环境
+| 类别 | 技术 | 说明 |
+|------|------|------|
+| 容器化 | Docker + docker compose | 三容器编排（MySQL + Backend + Frontend） |
+| 前端部署 | Nginx | SPA 静态文件 + API 反向代理 |
+| 开发体验 | 热重载 + HMR | uvicorn --reload + Vite dev server |
+| 环境隔离 | Python venv + Docker | 虚拟环境 + 容器隔离 |
+| 测试 | Python httpx + asyncio | 乐观锁并发压测 |
 
-### 数据库
-- **架构优化 v2.0**：新增 `containers_master` 主数据表，解耦集装箱属性与业务流程
-- **轨迹流水**：`container_move_logs` 替代 JSON 历史字段，支持结构化轨迹追溯
-- **乐观锁**：`yard_slots.version` 防止高并发预占箱位超卖
-- **冷热分离**：`system_logs` / `gate_io_records` / `yard_operation_records` 按月分区
-- 16 张业务表 + 2 张主数据/流水表 + 3 张系统管理表
-- 3 个视图 (综合查询 / 今日汇总 / 利用率)
-- 4 个存储过程 + 2 个触发器
-- 14 个查询优化索引
+---
 
-## 页面功能
+## 数据库架构
 
-| 页面 | 路由 | 核心功能 |
-|------|------|----------|
-| 运营总览 | `/dashboard` | 6 个实时统计卡片 + 24h 趋势图 + 堆场状态图 + 告警时间线 |
-| 海侧进箱 | `/sea/inbound` | 卸船入场全流程管理，动态显示当前作业计划 |
-| 海侧出场 | `/sea/outbound` | 装船出场全流程管理，动态显示当前作业计划 |
-| 海侧计划 | `/sea/plan` | 海侧作业计划编排与管理 |
-| 陆侧进箱 | `/land/inbound` | 集卡进闸全流程，实时闸口通行统计 |
-| 陆侧出场 | `/land/outbound` | 集卡出闸提箱管理 |
-| 陆侧计划 | `/land/plan` | 陆侧作业计划编排与管理 |
-| 堆存管理 | `/yard/storage` | 集装箱台账 + 堆场区域利用率 (虚拟滚动) |
-| 调箱作业 | `/yard/move` | 场内翻箱/归位作业管理 |
-| 调度指令 | `/dispatch` | 中控调度指令下发与执行追踪 (虚拟滚动) |
-| 箱量查询 | `/query` | 按箱号/船名/堆位多维度查询 (虚拟滚动) |
-| 效率统计 | `/statistics` | 班组效率 + 月度趋势 + 设备利用率 (动态图表) |
-| 报表中心 | `/reports` | 系统日志与报表历史查看 |
+### V2.0 架构升级要点
+
+| 优化项 | 说明 |
+|--------|------|
+| **containers_master** | 集装箱主数据表，解耦 D1/D2/D4/D5/D7 的循环依赖。陆侧箱可独立入账 |
+| **container_move_logs** | 箱位移动流水表，替代 JSON 文本字段。支持结构化轨迹追溯和时间范围索引 |
+| **乐观锁** | `yard_slots.version INT DEFAULT 0`，UPDATE 时对比版本号，防高并发超卖 |
+| **表分区** | `system_logs` / `gate_io_records` / `yard_operation_records` 按月 RANGE 分区 |
+
+### 表结构总览（21 张表）
+
+```
+ContainerTerminalDB
+├── 主数据表
+│   └── containers_master          # 集装箱主数据（固有物理属性）
+│
+├── 基础支撑表 (3)
+│   ├── ships                      # 船舶信息
+│   ├── yard_zones                 # 堆场区域
+│   └── yard_slots                 # 箱位明细（含 version 乐观锁）
+│
+├── 业务数据表 (14)
+│   ├── sea_inbound_containers     # D1 海侧进箱
+│   ├── sea_outbound_containers    # D2 海侧出场
+│   ├── sea_terminal_io            # D3 码头统筹
+│   ├── sea_operation_plans        # 海侧计划
+│   ├── land_inbound_containers    # D4 陆侧进箱
+│   ├── land_outbound_containers   # D5 陆侧出场
+│   ├── land_operation_plans       # 陆侧计划
+│   ├── gate_io_records            # D6 闸口通行
+│   ├── yard_container_inventory   # D7 场内台账
+│   ├── yard_operation_records     # D8 作业记录
+│   ├── dispatch_orders            # D9 调度指令
+│   ├── users                      # 用户权限
+│   ├── system_logs                # 操作日志（按月分区）
+│   └── alerts                     # 异常告警
+│
+└── 流水日志表
+    └── container_move_logs        # 箱位移动流水（按月分区）
+```
+
+### 关键外键关系
+
+```
+containers_master.container_id ──→ sea_inbound_containers.container_id
+                                ├→ sea_outbound_containers.container_id
+                                ├→ land_inbound_containers.container_id
+                                ├→ land_outbound_containers.container_id
+                                ├→ yard_container_inventory.container_id
+                                ├→ yard_operation_records.container_id
+                                ├→ dispatch_orders.container_id
+                                ├→ gate_io_records.container_id
+                                └→ container_move_logs.container_id
+
+yard_slots.slot_id ──→ container_move_logs.from_slot_id
+                    ├→ container_move_logs.to_slot_id
+                    ├→ yard_container_inventory.current_slot_id
+                    └→ yard_operation_records.original/target_slot_id
+```
+
+---
 
 ## API 模块一览
 
-| 模块 | 端点数 | 前缀 |
-|------|--------|------|
-| 船舶管理 | 5 | `/api/v1/ships` |
-| 堆场区域 | 4 | `/api/v1/yard-zones` |
-| 堆场箱位 | 3 | `/api/v1/yard-slots` |
-| 海侧进箱 D1 | 5 | `/api/v1/sea-inbounds` |
-| 海侧出场 D2 | 4 | `/api/v1/sea-outbounds` |
-| 码头统筹 D3 | 4 | `/api/v1/sea-terminal-io` |
-| 陆侧进箱 D4 | 4 | `/api/v1/land-inbounds` |
-| 陆侧出场 D5 | 4 | `/api/v1/land-outbounds` |
-| 闸口通行 D6 | 4 | `/api/v1/gate-records` |
-| 场内台账 D7 | 5 | `/api/v1/yard-inventory` |
-| 作业记录 D8 | 4 | `/api/v1/yard-operations` |
-| 调度指令 D9 | 5 | `/api/v1/dispatch-orders` |
-| 集装箱主数据 D0 | 3 | `/api/v1/containers` (含轨迹查询) |
-| 海侧计划 | 4 | `/api/v1/sea-plans` |
-| 陆侧计划 | 4 | `/api/v1/land-plans` |
-| 用户管理 | 4 | `/api/v1/users` |
-| 系统日志 | 2 | `/api/v1/system-logs` |
-| 异常告警 | 4 | `/api/v1/alerts` |
+| 模块 | 端点 | 前缀 | 说明 |
+|------|:--:|------|------|
+| 认证 | 1 | `/api/v1/auth` | ★ 登录认证（新增） |
+| 集装箱主数据 | 3 | `/api/v1/containers` | ★ 主数据 CRUD + 轨迹查询（新增） |
+| 船舶管理 | 5 | `/api/v1/ships` | 船舶 CRUD |
+| 堆场区域 | 4 | `/api/v1/yard-zones` | 区域查询与利用率 |
+| 堆场箱位 | 3 | `/api/v1/yard-slots` | 箱位管理（含乐观锁） |
+| 海侧进箱 D1 | 5 | `/api/v1/sea-inbounds` | 含主数据优先校验 |
+| 海侧出场 D2 | 4 | `/api/v1/sea-outbounds` | 装船出场 |
+| 码头统筹 D3 | 4 | `/api/v1/sea-terminal-io` | 码头出入统筹 |
+| 陆侧进箱 D4 | 4 | `/api/v1/land-inbounds` | 陆侧入场 |
+| 陆侧出场 D5 | 4 | `/api/v1/land-outbounds` | 陆侧出场 |
+| 闸口通行 D6 | 4 | `/api/v1/gate-records` | 闸口出入 |
+| 场内台账 D7 | 5 | `/api/v1/yard-inventory` | 场内集装箱全生命周期 |
+| 作业记录 D8 | 4 | `/api/v1/yard-operations` | 含乐观锁 + 轨迹同步 |
+| 调度指令 D9 | 5 | `/api/v1/dispatch-orders` | 中控调度 |
+| 海侧计划 | 4 | `/api/v1/sea-plans` | 作业计划 |
+| 陆侧计划 | 4 | `/api/v1/land-plans` | 作业计划 |
+| 用户管理 | 4 | `/api/v1/users` | 用户 CRUD |
+| 系统日志 | 2 | `/api/v1/system-logs` | 操作日志 |
+| 异常告警 | 4 | `/api/v1/alerts` | 告警管理 |
 
-## 设计文档
+**合计：18 个模块，78 个端点**
 
-- [数据库设计文档](数据库设计文档.md) — 完整表结构、字段说明、过程-数据类矩阵
-- [ER 关系图](database_er_diagram.png) — 实体关系图
-- [建库脚本](yard_mis_database.sql) — MySQL DDL + 原始种子数据
-- [V2 迁移脚本](02_db_optimization_migration.sql) — V2.0 架构升级 DDL（主数据表 + 乐观锁 + 分区）
-- [V2 测试数据](v2_mock_data.sql) — V2 架构专属种子数据（含轨迹流水）
+---
+
+## 认证与登录
+
+### 登录流程
+
+1. 访问任意页面 → 未登录 → 自动跳转 `/login`
+2. 下拉选择 4 个预置账号之一 → 点击登录
+3. 后端 `POST /api/v1/auth/login` 验证用户名存在性和状态
+4. 成功 → Pinia store 保存用户信息 + localStorage 持久化 → 跳转 Dashboard
+5. 右上角退出按钮 → 清除会话 → 返回登录页
+
+### 预置账号
+
+| 用户名 | 角色 | 部门 | 说明 |
+|--------|------|------|------|
+| `dispatcher` | 中控调度员 | 调度中心 | 默认登录角色 |
+| `gate_clerk` | 闸口管理员 | 闸口管理 | 闸口业务 |
+| `yard_op` | 堆场管理员 | 堆场管理 | 场内作业 |
+| `admin` | 系统管理员 | 信息中心 | 系统管理 |
+
+> 当前为简易认证模式（仅验证用户名），密码校验将在后续集成 Auth 模块时加入。
+
+---
 
 ## 开发指南
 
-### 数据库 V2 架构迁移
+### 数据库操作
 
 ```bash
-# 在已有数据库上升级到 V2 架构
+# 导入初始建库脚本
+docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < yard_mis_database.sql
+
+# V2.0 架构升级
 docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < 02_db_optimization_migration.sql
+
+# 导入 V2 测试种子数据
 docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < v2_mock_data.sql
+
+# 清理测试数据（保留基础参考数据）
+docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < cleanup_test_data.sql
 ```
 
 ### 乐观锁压测
@@ -239,13 +410,40 @@ docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < v2_mock_dat
 ```bash
 pip install httpx
 python test_optimistic_lock.py
-# 期望: 10 并发抢占同一箱位 → 1 成功 + 9 Conflict (409)
+# 期望结果: 10 并发抢占同一箱位 → 1 成功 (200) + 9 冲突 (409)
 ```
 
-### 关键端点 (v2 新增)
+### 代码构建
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v1/containers` | 集装箱主数据列表 |
-| GET | `/api/v1/containers/{id}` | 集装箱主数据详情 |
-| GET | `/api/v1/containers/{id}/move-logs` | 集装箱移动轨迹（时间倒序） |
+```bash
+# 前端生产构建
+cd frontend && npm run build    # 输出到 dist/
+
+# 前端开发服务器
+cd frontend && npm run dev      # http://localhost:5173
+
+# 后端开发服务器
+cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Git 分支规范
+
+```
+main ← feat/db-architecture-optimization   (DB V2 架构升级)
+    ← feat/api-logic-refactoring           (API 层对齐)
+    ← feat/frontend-v2-integration         (前端对接 + 压测)
+```
+
+---
+
+## 设计文档
+
+| 文档 | 说明 |
+|------|------|
+| [数据库设计文档](数据库设计文档.md) | 完整 21 张表结构、字段说明、过程-数据类矩阵、V2 架构变动 |
+| [ER 关系图](database_er_diagram.png) | 实体关系图 |
+| [yard_mis_database.sql](yard_mis_database.sql) | MySQL 初始建库脚本 + 原始种子数据 |
+| [02_db_optimization_migration.sql](02_db_optimization_migration.sql) | V2.0 架构升级 DDL（主数据表 + 乐观锁 + 分区） |
+| [v2_mock_data.sql](v2_mock_data.sql) | V2.0 架构测试种子数据（含轨迹流水） |
+| [cleanup_test_data.sql](cleanup_test_data.sql) | 清理测试数据脚本 |
+| [test_optimistic_lock.py](test_optimistic_lock.py) | 乐观锁并发压测脚本 |
