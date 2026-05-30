@@ -170,7 +170,7 @@ function renderYardMap(zoneId) {
     if (slot.slot_status === 'occupied') el.innerHTML += '<div class="slot-status">箱</div>'
     el.onclick = () => {
       const texts = { empty: '空闲', occupied: '已占用', reserved: '预留', maintenance: '维护中' }
-      alert(`箱位 ${slot.slot_id}\n状态：${texts[slot.slot_status] || slot.slot_status}`)
+      appStore.showToast(`箱位 ${slot.slot_id} | 状态：${texts[slot.slot_status] || slot.slot_status}`, 'info')
     }
     container.appendChild(el)
   }
