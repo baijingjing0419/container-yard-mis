@@ -27,7 +27,7 @@
       </button>
 
       <p style="text-align:center;color:#94a3b8;font-size:12px;margin-top:20px;">
-        预置工号 1 | 2 | 3 | 4 | admin 密码均为 123
+        工号 1~4 密码 123 | 工号 5 管理员入口
       </p>
     </div>
   </div>

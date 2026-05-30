@@ -123,6 +123,6 @@ REPLACE INTO users (user_id, username, password_hash, real_name, role, departmen
 ('2', 'gate_clerk',  'pbkdf2:sha256:100000$91aa7141c2ee1c325ef5bdb502880478$ff4258bc012f4c676952507a69bb4b10fadf667ac9783cd84260c3a754c97e70', '王芳',  'gate_clerk',  '闸口管理', '13800000002', 'gate@yard.local',       'active'),
 ('3', 'qc_op',       'pbkdf2:sha256:100000$aba1cc89b7fab7f357f331642aba2564$098af06cdeadece719804f0798092a8420f280ff743c263d7463049fd65aa8d5', '赵岸',  'qc_op',       '岸桥班组', '13800000003', 'qc_op@yard.local',      'active'),
 ('4', 'yc_op',       'pbkdf2:sha256:100000$5fe13c29d0edcbbdd14d998887e7b965$210afc380ea7fcab3c346cb09df06bace17399267ccffe34c5fe0b05e8516a76', '钱场',  'yc_op',       '场桥班组', '13800000005', 'yc_op@yard.local',      'active'),
-('admin', 'admin',   'pbkdf2:sha256:100000$eb200bbb81328c4c1ae36744bf49ef40$3545f7c0a496beb85d6307dabb93605a885a508ec46ffea6d649af7aa42cf1f0', '管理员','admin',       '信息中心', '13800000004', 'admin@yard.local',      'active');
+('5', 'admin',   'pbkdf2:sha256:100000$eb200bbb81328c4c1ae36744bf49ef40$3545f7c0a496beb85d6307dabb93605a885a508ec46ffea6d649af7aa42cf1f0', '管理员','admin',       '信息中心', '13800000004', 'admin@yard.local',      'active');
 
 SET FOREIGN_KEY_CHECKS = 1;
