@@ -47,7 +47,11 @@
                 <td>{{ item.expected_exit_time ? item.expected_exit_time.substring(0,10) : '--' }}</td>
                 <td>{{ item.dwell_time_hours ? item.dwell_time_hours+'小时' : '--' }}</td>
                 <td>{{ item.ship_name || item.ship_id || '--' }}</td>
-                <td><button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button><button class="btn btn-sm btn-secondary"><i class="fas fa-map-marker-alt"></i></button></td>
+                <td>
+                  <button class="btn btn-sm btn-secondary" @click="openMoveLogs(item.container_id)" title="移动轨迹"><i class="fas fa-route"></i></button>
+                  <button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button>
+                  <button class="btn btn-sm btn-secondary"><i class="fas fa-map-marker-alt"></i></button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -63,6 +67,23 @@
       <div class="form-group"><label class="form-label">当前堆位</label><input v-model="form.current_slot_id" class="form-input" placeholder="如: A-12-04"></div>
       <div class="form-group"><label class="form-label">来源类型</label><select v-model="form.source_type" class="form-input"><option value="sea_inbound">海侧入场</option><option value="land_inbound">陆侧入场</option></select></div>
     </BaseModal>
+
+    <BaseModal :title="'移动轨迹 - ' + selectedContainerId" :visible="showMoveLogs" @close="showMoveLogs=false">
+      <div v-if="moveLogsLoading" style="text-align:center;padding:30px;color:#94a3b8;">加载中...</div>
+      <div v-else-if="!moveLogs.length" style="text-align:center;padding:30px;color:#94a3b8;">暂无移动轨迹记录</div>
+      <div class="timeline" v-else>
+        <div class="timeline-item" v-for="log in moveLogs" :key="log.log_id">
+          <div class="timeline-dot"></div>
+          <div class="timeline-time">{{ log.move_time ? log.move_time.substring(0, 19) : '--' }}</div>
+          <div class="timeline-title">
+            {{ log.from_slot_id || '场外' }} <i class="fas fa-arrow-right" style="margin:0 6px;font-size:10px;"></i> {{ log.to_slot_id }}
+          </div>
+          <div class="timeline-content" v-if="log.operator_name || log.equipment_id">
+            {{ log.operator_name || '--' }}<span v-if="log.equipment_id"> | {{ log.equipment_id }}</span>
+          </div>
+        </div>
+      </div>
+    </BaseModal>
   </div>
 </template>
 
@@ -70,6 +91,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useVirtualList } from '@vueuse/core'
 import { getInventoryList, createInventory } from '../../api/yardInventory'
+import { getContainerMoveLogs } from '../../api/container'
 import { useAppStore } from '../../store/app'
 import api from '../../api/request'
 import BaseModal from '../../components/BaseModal.vue'
@@ -79,6 +101,11 @@ const list = ref([]); const loading = ref(true); const showModal = ref(false); c
 const zones = ref([])
 const form = reactive({ container_id:'', container_type:'40HQ', ship_id:'', current_slot_id:'', source_type:'sea_inbound', container_status:'in_yard' })
 
+const showMoveLogs = ref(false)
+const selectedContainerId = ref('')
+const moveLogs = ref([])
+const moveLogsLoading = ref(false)
+
 const { list: virtualList, containerProps, wrapperProps } = useVirtualList(list, { itemHeight: 48, overscan: 10 })
 
 async function fetchData() { loading.value=true; try { const p={page_size:500}; if(searchQuery.value)p.container_id=searchQuery.value; const d=await getInventoryList(p); list.value=d?.items||[] } finally { loading.value=false } }
@@ -87,5 +114,21 @@ function openCreate() { Object.assign(form,{container_id:'',container_type:'40HQ
 const appStore = useAppStore()
 
 async function handleSave() { if(!form.container_id)return appStore.showToast('请输入箱号', 'error'); try{await createInventory({...form});showModal.value=false;appStore.showToast('新增成功', 'success');fetchData()}catch(_){} }
+
+async function openMoveLogs(containerId) {
+  selectedContainerId.value = containerId
+  showMoveLogs.value = true
+  moveLogsLoading.value = true
+  moveLogs.value = []
+  try {
+    const data = await getContainerMoveLogs(containerId, { page_size: 100 })
+    moveLogs.value = data.items || []
+  } catch {
+    moveLogs.value = []
+  } finally {
+    moveLogsLoading.value = false
+  }
+}
+
 onMounted(() => { fetchData(); fetchZones() })
 </script>
