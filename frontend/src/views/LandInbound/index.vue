@@ -62,6 +62,7 @@ import { getLandInboundList, createLandInbound } from '../../api/landInbound'
 import api from '../../api/request'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
 const list = ref([]); const loading = ref(true); const showModal = ref(false)
 const gateStats = reactive({ openLanes: '--', avgTime: '--' })

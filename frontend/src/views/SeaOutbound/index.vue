@@ -73,6 +73,7 @@ import { getSeaOutboundList, createSeaOutbound } from '../../api/seaOutbound'
 import api from '../../api/request'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
 const list = ref([]); const loading = ref(true); const showModal = ref(false)
 const activePlan = ref(null)

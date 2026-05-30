@@ -48,6 +48,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { getLandPlanList, createLandPlan } from '../../api/landPlan'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
 const list = ref([]); const loading = ref(true); const showModal = ref(false)
 const form = reactive({ plan_id:'', plan_type:'inbound_outbound', planned_container_count:0, assigned_gate_lanes:'', plan_status:'draft' })

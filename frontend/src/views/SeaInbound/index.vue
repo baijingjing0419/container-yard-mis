@@ -120,6 +120,7 @@ import { getSeaInboundList, createSeaInbound } from '../../api/seaInbound'
 import api from '../../api/request'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
 const list = ref([])
 const loading = ref(true)

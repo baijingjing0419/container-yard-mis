@@ -55,6 +55,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { getOperationList, createOperation } from '../../api/yardOperation'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
 const list = ref([]); const loading = ref(true); const showModal = ref(false)
 const form = reactive({ record_id:'', operation_type:'shift', container_id:'', original_slot_id:'', target_slot_id:'', equipment_id:'', operator_name:'', operation_status:'pending' })

@@ -48,6 +48,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { getLandOutboundList, createLandOutbound } from '../../api/landOutbound'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
 const list = ref([]); const loading = ref(true); const showModal = ref(false)
 const form = reactive({ container_id:'', container_type:'40GP', truck_plate:'', pickup_document_no:'', ship_id:'', process_status:'planned' })

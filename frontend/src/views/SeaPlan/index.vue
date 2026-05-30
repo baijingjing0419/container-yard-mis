@@ -53,6 +53,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { getSeaPlanList, createSeaPlan } from '../../api/seaPlan'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
 const list = ref([]); const loading = ref(true); const showModal = ref(false)
 const form = reactive({ plan_id:'', plan_type:'discharge', voyage_no:'', ship_id:'', planned_inbound:0, planned_outbound:0, plan_status:'draft' })
