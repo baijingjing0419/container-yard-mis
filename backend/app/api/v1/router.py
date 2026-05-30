@@ -18,6 +18,7 @@ from app.api.v1.users import router as users_router
 from app.api.v1.system_logs import router as logs_router
 from app.api.v1.alerts import router as alerts_router
 from app.api.v1.containers import router as containers_router
+from app.api.v1.auth import router as auth_router
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(ships_router)
@@ -38,3 +39,4 @@ api_router.include_router(users_router)
 api_router.include_router(logs_router)
 api_router.include_router(alerts_router)
 api_router.include_router(containers_router)
+api_router.include_router(auth_router)

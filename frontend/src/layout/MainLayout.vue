@@ -87,6 +87,9 @@
           <div style="font-size: 12px; color: #94a3b8;">{{ userStore.department }} - {{ userStore.shift }}</div>
         </div>
         <div class="user-avatar">{{ userStore.realName.charAt(0) }}</div>
+        <div class="logout-btn" @click="handleLogout" title="退出登录">
+          <i class="fas fa-sign-out-alt" style="color:#94a3b8;cursor:pointer;font-size:14px;"></i>
+        </div>
       </div>
 
       <div v-if="appStore.showNotificationPanel" class="notification-panel">
@@ -121,15 +124,21 @@
 
 <script setup>
 import { computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
 import { useAppStore } from '../store/app'
 
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 const appStore = useAppStore()
 
 const pageTitle = computed(() => route.meta?.title || '运营总览')
+
+function handleLogout() {
+  userStore.logout()
+  router.push('/login')
+}
 
 onMounted(() => { appStore.fetchNotifications() })
 </script>

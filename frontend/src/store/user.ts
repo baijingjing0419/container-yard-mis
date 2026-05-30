@@ -1,32 +1,50 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 
-interface UserInfo {
-  username?: string
-  real_name?: string
-  role?: string
-  department?: string
+const ROLE_LABELS: Record<string, string> = {
+  dispatcher: '中控调度员', gate_clerk: '闸口管理员', yard_op: '堆场管理员', admin: '系统管理员',
+}
+const ROLE_DEPTS: Record<string, string> = {
+  dispatcher: '调度中心', gate_clerk: '闸口管理', yard_op: '堆场管理', admin: '信息中心',
 }
 
 export const useUserStore = defineStore('user', () => {
-  const username = ref('dispatcher')
-  const realName = ref('中控调度员')
-  const role = ref('dispatcher')
-  const department = ref('调度中心')
+  const username = ref('')
+  const realName = ref('')
+  const role = ref('')
+  const department = ref('')
+  const loggedIn = ref(false)
+
+  const displayName = computed(() => realName.value || username.value || '未登录')
+  const roleLabel = computed(() => ROLE_LABELS[role.value] || role.value)
   const shift = ref('当班')
 
-  const displayName = computed(() => realName.value || username.value)
-  const roleLabel = computed(() => {
-    const map: Record<string, string> = { dispatcher: '中控调度员', gate_clerk: '闸口管理员', yard_op: '堆场管理员', admin: '系统管理员' }
-    return map[role.value] || role.value
-  })
-
-  function setUser(user: UserInfo) {
-    if (user.username) username.value = user.username
-    if (user.real_name) realName.value = user.real_name
-    if (user.role) role.value = user.role
-    if (user.department) department.value = user.department
+  function login(user: { username: string; realName?: string; role: string; department?: string }) {
+    username.value = user.username
+    realName.value = user.realName || user.username
+    role.value = user.role
+    department.value = user.department || ROLE_DEPTS[user.role] || ''
+    loggedIn.value = true
+    localStorage.setItem('yard_user', JSON.stringify({
+      username: user.username, realName: user.realName, role: user.role, department: user.department,
+    }))
   }
 
-  return { username, realName, role, department, shift, displayName, roleLabel, setUser }
+  function restoreSession() {
+    const saved = localStorage.getItem('yard_user')
+    if (saved) {
+      try {
+        const u = JSON.parse(saved)
+        login(u)
+      } catch { /* ignore */ }
+    }
+  }
+
+  function logout() {
+    username.value = ''; realName.value = ''; role.value = ''; department.value = ''
+    loggedIn.value = false
+    localStorage.removeItem('yard_user')
+  }
+
+  return { username, realName, role, department, shift, loggedIn, displayName, roleLabel, login, restoreSession, logout }
 })
