@@ -1,14 +1,13 @@
-import axios from 'axios'
+import axios, { type AxiosInstance, type AxiosResponse } from 'axios'
 
-const api = axios.create({
+const api: AxiosInstance = axios.create({
   baseURL: '/api/v1',
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 })
 
-// 响应拦截器：统一处理 FastAPI 错误
 api.interceptors.response.use(
-  (res) => res,
+  (res: AxiosResponse) => res,
   (error) => {
     const detail = error.response?.data?.detail
     const msg = detail
@@ -16,7 +15,7 @@ api.interceptors.response.use(
       : (error.message || '网络请求失败')
     alert('请求错误: ' + msg)
     return Promise.reject(error)
-  }
+  },
 )
 
 export default api
