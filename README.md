@@ -23,7 +23,10 @@
 
 | 页面 | 路由 | 核心功能 |
 |------|------|----------|
-| **登录** | `/login` | 工号+密码登录（PBKDF2 哈希），JWT 认证，开发者免登入口 |
+| **系统初始化** | `/setup` | 首次部署向导：创建管理员 + 检测堆场配置 |
+| **首次登录** | `/first-login` | 员工首次登录设置密码 |
+| **登录** | `/login` | 工号+密码登录（PBKDF2 哈希），JWT 认证 |
+| **数据导入** | `/import` | CSV 批量导入员工、船舶、集装箱数据 |
 | **运营总览** | `/dashboard` | 6 个实时统计卡片 + 24h 作业趋势图 + 堆场热力图 + 告警时间线 |
 | **海侧进箱** | `/sea/inbound` | 卸船入场全流程，动态显示当前作业计划（主数据优先校验） |
 | **海侧出场** | `/sea/outbound` | 装船出场全流程，动态显示当前作业计划 |
@@ -48,13 +51,16 @@ mis/
 ├── .gitignore
 ├── docker-compose.yml                 # 生产环境 Docker 编排（MySQL + Backend + Frontend）
 ├── docker-compose.dev.yml             # 开发环境覆盖（代码挂载 + 热重载）
-├── yard_mis_database.sql              # MySQL 初始建库脚本（含原始种子数据）
-├── 02_db_optimization_migration.sql   # V2.0 架构升级 DDL（主数据表 + 乐观锁 + 分区）
-├── v2_mock_data.sql                   # V2.0 架构测试种子数据（含轨迹流水）
-├── cleanup_test_data.sql              # 清理测试数据脚本（保留基础参考数据）
-├── test_optimistic_lock.py            # 乐观锁并发压测脚本
-├── database_er_diagram.png            # 数据库 ER 关系图
-├── 数据库设计文档.md
+├── tests/
+│   └── test_optimistic_lock.py        # 乐观锁并发压测脚本
+├── database/
+│   ├── schema.sql                      # 全量建库脚本（DDL + 堆场布局）
+│   ├── database_er_diagram.png         # 数据库 ER 关系图
+│   └── seeds/
+│       ├── dev_seed.sql                 # 开发用全量 mock 数据
+│       └── cleanup_test_data.sql        # 清理测试数据
+├── docs/
+│   └── 数据库设计文档.md
 │
 ├── backend/                           # Python FastAPI 后端
 │   ├── Dockerfile                     # 生产镜像（python:3.12-slim）
@@ -133,6 +139,8 @@ mis/
         │   ├── BaseModal.vue          # 通用模态框
         │   └── StatusBadge.vue        # 状态徽章
         └── views/
+            ├── Setup/index.vue        # ★ 系统初始化向导
+            ├── FirstLogin/index.vue   # ★ 首次登录设置密码
             ├── Login/index.vue        # ★ 登录页
             ├── Dashboard/index.vue    # 运营总览
             ├── SeaInbound/index.vue   # 海侧进箱
@@ -187,12 +195,8 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 #### 1. 初始化数据库
 
 ```bash
-# 导入初始建库脚本
-mysql -u root -p < yard_mis_database.sql
-
-# 执行 V2.0 架构升级（如数据库已存在）
-docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < 02_db_optimization_migration.sql
-```
+# 全量建库（新环境）
+mysql -u root -p < database/schema.sql
 
 这将创建 `ContainerTerminalDB` 数据库，包含 21 张表、3 个视图、4 个存储过程、2 个触发器和预置种子数据。
 
@@ -473,24 +477,21 @@ yard_slots.slot_id ──→ container_move_logs.from_slot_id
 ### 数据库操作
 
 ```bash
-# 导入初始建库脚本
-docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < yard_mis_database.sql
+# 新环境：导入全量建库脚本（始终最新版本）
+docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/schema.sql
 
-# V2.0 架构升级
-docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < 02_db_optimization_migration.sql
-
-# 导入 V2 测试种子数据
-docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < v2_mock_data.sql
+# 导入测试种子数据
+docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/seeds/dev_seed.sql
 
 # 清理测试数据（保留基础参考数据）
-docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < cleanup_test_data.sql
+docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/seeds/cleanup_test_data.sql
 ```
 
 ### 乐观锁压测
 
 ```bash
 pip install httpx
-python test_optimistic_lock.py
+python tests/test_optimistic_lock.py
 # 期望结果: 10 并发抢占同一箱位 → 1 成功 (200) + 9 冲突 (409)
 ```
 
@@ -521,10 +522,9 @@ main ← feat/db-architecture-optimization   (DB V2 架构升级)
 
 | 文档 | 说明 |
 |------|------|
-| [数据库设计文档](数据库设计文档.md) | 完整 21 张表结构、字段说明、过程-数据类矩阵、V2 架构变动 |
-| [ER 关系图](database_er_diagram.png) | 实体关系图 |
-| [yard_mis_database.sql](yard_mis_database.sql) | MySQL 初始建库脚本 + 原始种子数据 |
-| [02_db_optimization_migration.sql](02_db_optimization_migration.sql) | V2.0 架构升级 DDL（主数据表 + 乐观锁 + 分区） |
-| [v2_mock_data.sql](v2_mock_data.sql) | V2.0 架构测试种子数据（含轨迹流水） |
-| [cleanup_test_data.sql](cleanup_test_data.sql) | 清理测试数据脚本 |
-| [test_optimistic_lock.py](test_optimistic_lock.py) | 乐观锁并发压测脚本 |
+| [数据库设计文档](docs/数据库设计文档.md) | 完整 21 张表结构、字段说明、过程-数据类矩阵、V2 架构变动 |
+| [ER 关系图](database/database_er_diagram.png) | 实体关系图 |
+| [schema.sql](database/schema.sql) | 全量建库脚本（DDL + 堆场布局，一键部署） |
+| [dev_seed.sql](database/seeds/dev_seed.sql) | 测试种子数据（含轨迹流水） |
+| [cleanup_test_data.sql](database/seeds/cleanup_test_data.sql) | 清理测试数据脚本 |
+| [test_optimistic_lock.py](tests/test_optimistic_lock.py) | 乐观锁并发压测脚本 |

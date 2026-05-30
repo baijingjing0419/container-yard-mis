@@ -27,7 +27,7 @@ def _build_response(order: DispatchOrder) -> DispatchResponse:
     if order.related_ship:
         data["ship_name"] = order.related_ship.ship_name
     if order.container:
-        data["container_info"] = f"{order.container.container_type} | {order.container.voyage_no}"
+        data["container_info"] = order.container.container_type
 
     return DispatchResponse(**data)
 

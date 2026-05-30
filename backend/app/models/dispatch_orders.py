@@ -1,7 +1,7 @@
 """场内调度指令信息表 ORM 模型 (D9)"""
 from datetime import datetime
 from decimal import Decimal
-from sqlalchemy import String, DECIMAL, DateTime, ForeignKey, func, Text
+from sqlalchemy import String, Integer, DECIMAL, DateTime, ForeignKey, func, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -10,7 +10,10 @@ from app.core.database import Base
 class DispatchOrder(Base):
     __tablename__ = "dispatch_orders"
 
-    # 指令号（主键），如 DI-20260528-201
+    # 代理键（高效 join）
+    id: Mapped[int] = mapped_column(Integer, autoincrement=True, unique=True, nullable=False, comment="代理键")
+
+    # 指令号（业务主键），如 DI-20260528-201
     order_id: Mapped[str] = mapped_column(String(30), primary_key=True, comment="指令号")
 
     # 指令类型：sea_inbound/sea_outbound/land_inbound/land_outbound/yard_shift
@@ -30,9 +33,20 @@ class DispatchOrder(Base):
         String(20), ForeignKey("containers_master.container_id"), index=True, comment="箱号"
     )
 
-    # 位置信息
-    original_position: Mapped[str | None] = mapped_column(String(20), comment="原位置")
-    target_position: Mapped[str | None] = mapped_column(String(20), comment="目标位置")
+    # 位置信息（FK → yard_slots，ON DELETE SET NULL）
+    original_position: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("yard_slots.slot_id", ondelete="SET NULL"), comment="原位置"
+    )
+    target_position: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("yard_slots.slot_id", ondelete="SET NULL"), comment="目标位置"
+    )
+
+    original_slot: Mapped["YardSlot | None"] = relationship(
+        "YardSlot", foreign_keys=[original_position], lazy="selectin"
+    )
+    target_slot: Mapped["YardSlot | None"] = relationship(
+        "YardSlot", foreign_keys=[target_position], lazy="selectin"
+    )
 
     # 作业要求
     operation_requirement: Mapped[str | None] = mapped_column(Text, comment="作业要求")

@@ -9,7 +9,6 @@ class ZoneCreate(BaseModel):
     zone_name: str = Field(..., max_length=50, description="区域名称")
     zone_type: str = Field(..., max_length=20, description="区域类型: import/export/transit")
     total_slots: int = Field(..., description="总箱位数")
-    occupied_slots: int = Field(default=0, description="已占用箱位数")
     max_tier: int = Field(default=5, description="最大堆叠层数")
     status: str = Field(default="active", max_length=20, description="状态")
 
@@ -19,7 +18,6 @@ class ZoneUpdate(BaseModel):
     zone_name: str | None = Field(None, max_length=50, description="区域名称")
     zone_type: str | None = Field(None, max_length=20, description="区域类型")
     total_slots: int | None = Field(None, description="总箱位数")
-    occupied_slots: int | None = Field(None, description="已占用箱位数")
     max_tier: int | None = Field(None, description="最大堆叠层数")
     status: str | None = Field(None, max_length=20, description="状态")
 

@@ -19,8 +19,12 @@ from app.api.v1.system_logs import router as logs_router
 from app.api.v1.alerts import router as alerts_router
 from app.api.v1.containers import router as containers_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.system import router as system_router
+from app.api.v1.import_data import router as import_router
 
 api_router = APIRouter(prefix="/api/v1")
+api_router.include_router(system_router)
+api_router.include_router(import_router)
 api_router.include_router(ships_router)
 api_router.include_router(yard_zones_router)
 api_router.include_router(yard_slots_router)

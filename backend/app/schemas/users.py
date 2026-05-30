@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 class UserCreate(BaseModel):
     user_id: str = Field(..., max_length=20)
     username: str = Field(..., max_length=50)
-    password_hash: str = Field(..., max_length=255, description="密码哈希（后续整合Auth）")
+    password_hash: str | None = Field(None, max_length=255, description="密码哈希（可留空，员工首次登录自设）")
     real_name: str | None = Field(None, max_length=50)
     role: str = Field(..., max_length=20, description="admin/dispatcher/operator/gate_clerk/supervisor")
     department: str | None = Field(None, max_length=50)

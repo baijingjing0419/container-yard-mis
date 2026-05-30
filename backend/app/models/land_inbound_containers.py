@@ -1,6 +1,6 @@
 """陆侧入场集装箱信息表 ORM 模型 (D4)"""
 from datetime import datetime
-from sqlalchemy import String, DateTime, ForeignKey, func
+from sqlalchemy import String, DateTime, ForeignKey, func, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -8,6 +8,9 @@ from app.core.database import Base
 
 class LandInboundContainer(Base):
     __tablename__ = "land_inbound_containers"
+    __table_args__ = (
+        Index("idx_land_inbound_gate", "truck_plate", "entry_time"),
+    )
 
     container_id: Mapped[str] = mapped_column(
         String(20), ForeignKey("containers_master.container_id"), primary_key=True, comment="箱号"

@@ -12,7 +12,7 @@ class SeaOutboundContainer(Base):
         String(20), ForeignKey("containers_master.container_id"), primary_key=True, comment="箱号"
     )
     container_status: Mapped[str] = mapped_column(String(20), default="loaded", comment="箱状态")
-    ship_id: Mapped[str] = mapped_column(String(20), ForeignKey("ships.ship_id"), nullable=False, comment="目标船名航次")
+    ship_id: Mapped[str] = mapped_column(String(20), ForeignKey("ships.ship_id"), nullable=False, index=True, comment="目标船名航次")
     voyage_no: Mapped[str] = mapped_column(String(20), nullable=False, comment="航次号")
     stowage_position: Mapped[str | None] = mapped_column(String(20), comment="配载舱位")
     exit_time: Mapped[datetime | None] = mapped_column(DateTime, comment="出场时间")

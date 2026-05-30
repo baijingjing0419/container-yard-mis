@@ -30,6 +30,7 @@ class OperationStatusUpdate(BaseModel):
 
 class OperationResponse(BaseModel):
     """作业记录响应体 - 含关联数据展开"""
+    id: int | None = None
     record_id: str
     operation_type: str
     container_id: str

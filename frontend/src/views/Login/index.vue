@@ -66,14 +66,14 @@ async function handleLogin() {
     error.value = '请输入工号'
     return
   }
-  if (!loginForm.value.password) {
-    error.value = '请输入密码'
-    return
-  }
   loading.value = true
   error.value = ''
   try {
     const { data } = await api.post('/auth/login', loginForm.value)
+    if (data.needs_password_setup) {
+      router.push('/first-login', { state: { employeeId: data.user_id, realName: data.real_name } })
+      return
+    }
     userStore.login({
       username: data.username,
       realName: data.real_name || data.username,

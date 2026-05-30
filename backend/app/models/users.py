@@ -10,7 +10,7 @@ class User(Base):
 
     user_id: Mapped[str] = mapped_column(String(20), primary_key=True, comment="用户ID")
     username: Mapped[str] = mapped_column(String(50), nullable=False, index=True, comment="用户名")
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False, comment="密码哈希")
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="密码哈希(NULL=待员工首次登录设置)")
     real_name: Mapped[str | None] = mapped_column(String(50), comment="真实姓名")
     role: Mapped[str] = mapped_column(String(20), nullable=False, comment="角色: admin/dispatcher/operator/gate_clerk/supervisor")
     department: Mapped[str | None] = mapped_column(String(50), comment="所属部门")

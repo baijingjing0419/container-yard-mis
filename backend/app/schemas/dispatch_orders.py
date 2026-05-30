@@ -13,7 +13,6 @@ class DispatchCreate(BaseModel):
     issue_dept: str | None = Field(None, max_length=50, description="下达部门")
     execute_dept: str | None = Field(None, max_length=50, description="执行部门")
     container_id: str | None = Field(None, max_length=20, description="箱号")
-    container_type: str | None = Field(None, max_length=10, description="箱型")
     original_position: str | None = Field(None, max_length=20, description="原位置")
     target_position: str | None = Field(None, max_length=20, description="目标位置")
     operation_requirement: str | None = Field(None, description="作业要求")
@@ -30,7 +29,6 @@ class DispatchUpdate(BaseModel):
     issue_dept: str | None = Field(None, max_length=50, description="下达部门")
     execute_dept: str | None = Field(None, max_length=50, description="执行部门")
     container_id: str | None = Field(None, max_length=20, description="箱号")
-    container_type: str | None = Field(None, max_length=10, description="箱型")
     original_position: str | None = Field(None, max_length=20, description="原位置")
     target_position: str | None = Field(None, max_length=20, description="目标位置")
     operation_requirement: str | None = Field(None, description="作业要求")
@@ -49,6 +47,7 @@ class DispatchStatusUpdate(BaseModel):
 
 class DispatchResponse(BaseModel):
     """调度指令响应体 - 含关联数据展开"""
+    id: int | None = None
     order_id: str
     order_type: str
     issue_time: datetime

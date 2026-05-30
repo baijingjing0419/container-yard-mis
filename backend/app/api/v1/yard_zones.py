@@ -1,33 +1,48 @@
 """堆场区域管理 API - 提供区域 CRUD 操作及利用率查询"""
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.yard_zones import YardZone
+from app.models.yard_slots import YardSlot
 from app.schemas.yard_zones import ZoneCreate, ZoneUpdate, ZoneResponse, ZoneWithUtilization
 
 router = APIRouter(prefix="/yard-zones", tags=["堆场区域管理"])
 
 
+async def _build_zone_response(zone: YardZone, db: AsyncSession) -> ZoneWithUtilization:
+    """构建带利用率信息的区域响应，occupied_slots 从 yard_slots 实时计算"""
+    count_result = await db.execute(
+        select(func.count()).select_from(YardSlot)
+        .where(YardSlot.zone_id == zone.zone_id, YardSlot.slot_status == "occupied")
+    )
+    occupied = count_result.scalar() or 0
+
+    util_rate = round(occupied * 100.0 / zone.total_slots, 2) if zone.total_slots > 0 else 0.0
+    return ZoneWithUtilization(
+        zone_id=zone.zone_id,
+        zone_name=zone.zone_name,
+        zone_type=zone.zone_type,
+        total_slots=zone.total_slots,
+        occupied_slots=occupied,
+        max_tier=zone.max_tier,
+        status=zone.status,
+        created_at=zone.created_at,
+        utilization_rate=util_rate,
+        empty_slots=zone.total_slots - occupied,
+    )
+
+
 @router.get("", response_model=list[ZoneWithUtilization], summary="获取堆场区域列表")
 async def list_zones(db: AsyncSession = Depends(get_db)):
     """查询所有堆场区域，自动计算利用率和空闲箱位数"""
-    query = select(YardZone).order_by(YardZone.zone_id)
-    result = await db.execute(query)
+    result = await db.execute(select(YardZone).order_by(YardZone.zone_id))
     zones = result.scalars().all()
 
-    # 计算每个区域的利用率
     result_list = []
     for zone in zones:
-        zone_dict = ZoneWithUtilization.model_validate(zone).model_dump()
-        if zone.total_slots > 0:
-            zone_dict["utilization_rate"] = round(zone.occupied_slots * 100.0 / zone.total_slots, 2)
-        else:
-            zone_dict["utilization_rate"] = 0.0
-        zone_dict["empty_slots"] = zone.total_slots - zone.occupied_slots
-        result_list.append(ZoneWithUtilization(**zone_dict))
-
+        result_list.append(await _build_zone_response(zone, db))
     return result_list
 
 
@@ -38,13 +53,7 @@ async def get_zone(zone_id: str, db: AsyncSession = Depends(get_db)):
     if not zone:
         raise HTTPException(status_code=404, detail=f"区域 {zone_id} 不存在")
 
-    # 计算利用率
-    zone_dict = ZoneWithUtilization.model_validate(zone).model_dump()
-    if zone.total_slots > 0:
-        zone_dict["utilization_rate"] = round(zone.occupied_slots * 100.0 / zone.total_slots, 2)
-    zone_dict["empty_slots"] = zone.total_slots - zone.occupied_slots
-
-    return ZoneWithUtilization(**zone_dict)
+    return await _build_zone_response(zone, db)
 
 
 @router.post("", response_model=ZoneResponse, status_code=201, summary="新增区域")

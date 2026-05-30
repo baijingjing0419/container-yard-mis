@@ -1,13 +1,16 @@
 """陆侧闸口出、入场信息表 ORM 模型 (D6)"""
 from datetime import datetime
-from sqlalchemy import String, Integer, DateTime, func, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String, Integer, DateTime, func, Text, ForeignKey, Index
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
 
 class GateIORecord(Base):
     __tablename__ = "gate_io_records"
+    __table_args__ = (
+        Index("idx_gate_io_time", "entry_time", "exit_time"),
+    )
 
     record_id: Mapped[str] = mapped_column(String(30), primary_key=True, comment="通行记录号")
     gate_lane_no: Mapped[str | None] = mapped_column(String(10), comment="闸口通道号")
@@ -16,8 +19,10 @@ class GateIORecord(Base):
     truck_plate: Mapped[str] = mapped_column(String(20), nullable=False, index=True, comment="车牌号码")
     driver_name: Mapped[str | None] = mapped_column(String(50), comment="司机姓名")
 
-    container_id: Mapped[str | None] = mapped_column(String(20), comment="箱号")
+    container_id: Mapped[str | None] = mapped_column(String(20), ForeignKey("containers_master.container_id"), comment="箱号")
     container_type: Mapped[str | None] = mapped_column(String(10), comment="箱型")
+
+    container: Mapped["ContainerMaster | None"] = relationship("ContainerMaster", lazy="selectin")
 
     document_no: Mapped[str | None] = mapped_column(String(50), comment="单证号")
     document_verify_result: Mapped[str] = mapped_column(String(20), default="passed", comment="核验结果: passed/failed/pending")

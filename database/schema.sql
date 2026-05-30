@@ -29,6 +29,22 @@ CREATE TABLE ships (
 ) ENGINE=InnoDB COMMENT='船舶基础信息表';
 
 -- ========================================================
+-- 1b. 集装箱主数据表 (V2 核心优化 — 解耦容器固有属性)
+-- ========================================================
+CREATE TABLE containers_master (
+    container_id        VARCHAR(20) PRIMARY KEY COMMENT '箱号',
+    container_type      VARCHAR(10) NOT NULL COMMENT '箱型(20GP/40GP/40HQ/45HQ)',
+    tare_weight         DECIMAL(10,2) COMMENT '皮重(kg)',
+    owner_company       VARCHAR(100) COMMENT '所属船公司/箱公司',
+    size_code           VARCHAR(10) COMMENT '尺寸代码(22G1/42G1)',
+    manufacture_date    DATE COMMENT '制造日期',
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_owner (owner_company),
+    INDEX idx_type (container_type)
+) ENGINE=InnoDB COMMENT='集装箱主数据表';
+
+-- ========================================================
 -- 2. 基础数据表 - 堆场区域与箱位信息
 -- ========================================================
 CREATE TABLE yard_zones (
@@ -36,7 +52,6 @@ CREATE TABLE yard_zones (
     zone_name           VARCHAR(50) NOT NULL COMMENT '区域名称',
     zone_type           VARCHAR(20) NOT NULL COMMENT '区域类型(import/export/transit)',
     total_slots         INT NOT NULL COMMENT '总箱位数',
-    occupied_slots      INT DEFAULT 0 COMMENT '已占用箱位数',
     max_tier            INT DEFAULT 5 COMMENT '最大堆叠层数',
     status              VARCHAR(20) DEFAULT 'active' COMMENT '状态',
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -52,6 +67,7 @@ CREATE TABLE yard_slots (
     current_container_id VARCHAR(20) COMMENT '当前存放集装箱号',
     max_weight          DECIMAL(10,2) COMMENT '最大承重(吨)',
     slot_size           VARCHAR(10) COMMENT '适用箱型(20GP/40GP/40HQ/all)',
+    version             INT DEFAULT 0 COMMENT '乐观锁版本号',
     FOREIGN KEY (zone_id) REFERENCES yard_zones(zone_id)
 ) ENGINE=InnoDB COMMENT='堆场箱位明细表';
 
@@ -342,6 +358,7 @@ CREATE TABLE yard_container_inventory (
 -- 关联过程: 场内调箱作业(C)、集装箱堆存日常管理/海侧陆侧进出箱作业(U)
 -- ========================================================
 CREATE TABLE yard_operation_records (
+    id                  INT AUTO_INCREMENT UNIQUE NOT NULL COMMENT '代理键',
     record_id           VARCHAR(30) PRIMARY KEY COMMENT '作业记录号',
     operation_type      VARCHAR(20) NOT NULL COMMENT '作业类型(shift/land/pick/flip/inspect)',
 
@@ -378,7 +395,7 @@ CREATE TABLE yard_operation_records (
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (container_id) REFERENCES sea_inbound_containers(container_id),
+    FOREIGN KEY (container_id) REFERENCES containers_master(container_id),
     FOREIGN KEY (original_slot_id) REFERENCES yard_slots(slot_id),
     FOREIGN KEY (target_slot_id) REFERENCES yard_slots(slot_id)
 ) ENGINE=InnoDB COMMENT='堆场作业记录表(D8)';
@@ -388,6 +405,7 @@ CREATE TABLE yard_operation_records (
 -- 关联过程: 场内作业计划/中控调度(C)、场内调箱/海侧陆侧进出箱作业(U)
 -- ========================================================
 CREATE TABLE dispatch_orders (
+    id                  INT AUTO_INCREMENT UNIQUE NOT NULL COMMENT '代理键',
     order_id            VARCHAR(30) PRIMARY KEY COMMENT '指令号',
     order_type          VARCHAR(20) NOT NULL COMMENT '指令类型(sea_inbound/sea_outbound/land_inbound/land_outbound/yard_shift)',
 
@@ -402,7 +420,6 @@ CREATE TABLE dispatch_orders (
 
     -- 集装箱信息
     container_id        VARCHAR(20) COMMENT '箱号',
-    container_type      VARCHAR(10) COMMENT '箱型',
     original_position   VARCHAR(20) COMMENT '原位置',
     target_position     VARCHAR(20) COMMENT '目标位置',
 
@@ -425,9 +442,45 @@ CREATE TABLE dispatch_orders (
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (container_id) REFERENCES sea_inbound_containers(container_id),
+    FOREIGN KEY (container_id) REFERENCES containers_master(container_id),
+    FOREIGN KEY (original_position) REFERENCES yard_slots(slot_id) ON DELETE SET NULL,
+    FOREIGN KEY (target_position) REFERENCES yard_slots(slot_id) ON DELETE SET NULL,
     FOREIGN KEY (related_ship_id) REFERENCES ships(ship_id)
 ) ENGINE=InnoDB COMMENT='场内调度指令信息表(D9)';
+
+-- ========================================================
+-- 11b. 箱位移动流水表 (V2 新增 — 替代 JSON 历史字段)
+-- ========================================================
+CREATE TABLE container_move_logs (
+    log_id          INT AUTO_INCREMENT COMMENT '日志ID',
+    container_id    VARCHAR(20) NOT NULL COMMENT '箱号',
+    from_slot_id    VARCHAR(20) COMMENT '原位置',
+    to_slot_id      VARCHAR(20) NOT NULL COMMENT '新位置',
+    move_time       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '移动时间',
+    operator_name   VARCHAR(50) COMMENT '操作人员',
+    operation_id    VARCHAR(30) COMMENT '关联作业记录号',
+    equipment_id    VARCHAR(20) COMMENT '作业机械编号',
+    remark          VARCHAR(200) COMMENT '备注',
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (log_id, move_time),
+    INDEX idx_container (container_id),
+    INDEX idx_move_time (move_time)
+) ENGINE=InnoDB COMMENT='箱位移动流水表(分区表，FK 由应用层保证)'
+PARTITION BY RANGE (TO_DAYS(move_time)) (
+    PARTITION p202601 VALUES LESS THAN (TO_DAYS('2026-02-01')),
+    PARTITION p202602 VALUES LESS THAN (TO_DAYS('2026-03-01')),
+    PARTITION p202603 VALUES LESS THAN (TO_DAYS('2026-04-01')),
+    PARTITION p202604 VALUES LESS THAN (TO_DAYS('2026-05-01')),
+    PARTITION p202605 VALUES LESS THAN (TO_DAYS('2026-06-01')),
+    PARTITION p202606 VALUES LESS THAN (TO_DAYS('2026-07-01')),
+    PARTITION p202607 VALUES LESS THAN (TO_DAYS('2026-08-01')),
+    PARTITION p202608 VALUES LESS THAN (TO_DAYS('2026-09-01')),
+    PARTITION p202609 VALUES LESS THAN (TO_DAYS('2026-10-01')),
+    PARTITION p202610 VALUES LESS THAN (TO_DAYS('2026-11-01')),
+    PARTITION p202611 VALUES LESS THAN (TO_DAYS('2026-12-01')),
+    PARTITION p202612 VALUES LESS THAN (TO_DAYS('2027-01-01')),
+    PARTITION p_future VALUES LESS THAN MAXVALUE
+);
 
 -- ========================================================
 -- 12. 作业计划表 - 海侧作业计划
@@ -505,7 +558,7 @@ CREATE TABLE land_operation_plans (
 CREATE TABLE users (
     user_id             VARCHAR(20) PRIMARY KEY COMMENT '用户ID',
     username            VARCHAR(50) NOT NULL COMMENT '用户名',
-    password_hash       VARCHAR(255) NOT NULL COMMENT '密码哈希',
+    password_hash       VARCHAR(255) NULL COMMENT '密码哈希(NULL=待员工首次登录设置)',
     real_name           VARCHAR(50) COMMENT '真实姓名',
     role                VARCHAR(20) NOT NULL COMMENT '角色(admin/dispatcher/operator/gate_clerk/supervisor)',
     department          VARCHAR(50) COMMENT '所属部门',
@@ -552,28 +605,284 @@ CREATE TABLE alerts (
 ) ENGINE=InnoDB COMMENT='异常告警表';
 
 -- ========================================================
--- 插入基础数据
+-- 基础数据 - 堆场物理布局（系统运行必需）
 -- ========================================================
+INSERT INTO yard_zones (zone_id, zone_name, zone_type, total_slots, max_tier, status) VALUES
+('A', 'A区-进口箱区', 'import', 90, 5, 'active'),
+('B', 'B区-出口箱区', 'export', 90, 5, 'active'),
+('C', 'C区-中转箱区', 'transfer', 90, 5, 'active');
 
--- 插入船舶数据
-INSERT INTO ships (ship_id, ship_name, ship_type, ship_company, ship_length, ship_capacity) VALUES
-('COSCO-2405', '中远海运白羊座', '集装箱船', '中远海运', 399.99, 20000),
-('MAERSK-8821', '马士基浩南', '集装箱船', '马士基', 399.00, 18000),
-('EVER-1803', '长荣海运', '集装箱船', '长荣海运', 368.00, 15000),
-('MSC-0921', '地中海航运', '集装箱船', 'MSC', 350.00, 14000);
-
--- 插入堆场区域
-INSERT INTO yard_zones (zone_id, zone_name, zone_type, total_slots, max_tier) VALUES
-('A', 'A区-进口箱区', 'import', 576, 5),
-('B', 'B区-出口箱区', 'export', 576, 5),
-('C', 'C区-中转箱区', 'transit', 576, 5);
-
--- 插入用户数据
-INSERT INTO users (user_id, username, password_hash, real_name, role, department) VALUES
-('U001', 'dispatcher', '$2a$10$...', '中控调度员', 'dispatcher', '调度中心'),
-('U002', 'gate_clerk', '$2a$10$...', '闸口管理员', 'gate_clerk', '闸口管理'),
-('U003', 'yard_op', '$2a$10$...', '堆场管理员', 'operator', '堆场管理'),
-('U004', 'admin', '$2a$10$...', '系统管理员', 'admin', '信息中心');
+INSERT INTO yard_slots (slot_id, zone_id, row_num, col_num, tier_num, slot_status, max_weight, slot_size, version) VALUES
+('A-01-01', 'A', 1, 1, 1, 'empty', 30.0, "40GP", 0),
+('A-01-02', 'A', 1, 2, 1, 'empty', 30.0, "40GP", 0),
+('A-01-03', 'A', 1, 3, 1, 'empty', 30.0, "40GP", 0),
+('A-01-04', 'A', 1, 4, 1, 'empty', 30.0, "40GP", 0),
+('A-01-05', 'A', 1, 5, 1, 'empty', 30.0, "40GP", 0),
+('A-01-06', 'A', 1, 6, 1, 'empty', 30.0, "40GP", 0),
+('A-02-01', 'A', 2, 1, 1, 'empty', 30.0, "40GP", 0),
+('A-02-02', 'A', 2, 2, 1, 'empty', 30.0, "40GP", 0),
+('A-02-03', 'A', 2, 3, 1, 'empty', 30.0, "40GP", 0),
+('A-02-04', 'A', 2, 4, 1, 'empty', 30.0, "40GP", 0),
+('A-02-05', 'A', 2, 5, 1, 'empty', 30.0, "40GP", 0),
+('A-02-06', 'A', 2, 6, 1, 'empty', 30.0, "40GP", 0),
+('A-03-01', 'A', 3, 1, 1, 'empty', 30.0, "40GP", 0),
+('A-03-02', 'A', 3, 2, 1, 'empty', 30.0, "40GP", 0),
+('A-03-03', 'A', 3, 3, 1, 'empty', 30.0, "40GP", 0),
+('A-03-04', 'A', 3, 4, 1, 'empty', 30.0, "40GP", 0),
+('A-03-05', 'A', 3, 5, 1, 'empty', 30.0, "40GP", 0),
+('A-03-06', 'A', 3, 6, 1, 'empty', 30.0, "40GP", 0),
+('A-04-01', 'A', 4, 1, 1, 'empty', 30.0, "40GP", 0),
+('A-04-02', 'A', 4, 2, 1, 'empty', 30.0, "40GP", 0),
+('A-04-03', 'A', 4, 3, 1, 'empty', 30.0, "40GP", 0),
+('A-04-04', 'A', 4, 4, 1, 'empty', 30.0, "40GP", 0),
+('A-04-05', 'A', 4, 5, 1, 'empty', 30.0, "40GP", 0),
+('A-04-06', 'A', 4, 6, 1, 'empty', 30.0, "40GP", 0),
+('A-05-01', 'A', 5, 1, 1, 'empty', 30.0, "40GP", 0),
+('A-05-02', 'A', 5, 2, 1, 'empty', 30.0, "40GP", 0),
+('A-05-03', 'A', 5, 3, 1, 'empty', 30.0, "40GP", 0),
+('A-05-04', 'A', 5, 4, 1, 'empty', 30.0, "40GP", 0),
+('A-05-05', 'A', 5, 5, 1, 'empty', 30.0, "40GP", 0),
+('A-05-06', 'A', 5, 6, 1, 'empty', 30.0, "40GP", 0),
+('A-06-01', 'A', 6, 1, 1, 'empty', 30.0, "40GP", 0),
+('A-06-02', 'A', 6, 2, 1, 'empty', 30.0, "40GP", 0),
+('A-06-03', 'A', 6, 3, 1, 'empty', 30.0, "40GP", 0),
+('A-06-04', 'A', 6, 4, 1, 'empty', 30.0, "40GP", 0),
+('A-06-05', 'A', 6, 5, 1, 'empty', 30.0, "40GP", 0),
+('A-06-06', 'A', 6, 6, 1, 'empty', 30.0, "40GP", 0),
+('A-07-01', 'A', 7, 1, 1, 'empty', 30.0, "40GP", 0),
+('A-07-02', 'A', 7, 2, 1, 'empty', 30.0, "40GP", 0),
+('A-07-03', 'A', 7, 3, 1, 'empty', 30.0, "40GP", 0),
+('A-07-04', 'A', 7, 4, 1, 'empty', 30.0, "40GP", 0),
+('A-07-05', 'A', 7, 5, 1, 'empty', 30.0, "40GP", 0),
+('A-07-06', 'A', 7, 6, 1, 'empty', 30.0, "40GP", 0),
+('A-08-01', 'A', 8, 1, 1, 'empty', 30.0, "40GP", 0),
+('A-08-02', 'A', 8, 2, 1, 'empty', 30.0, "40GP", 0),
+('A-08-03', 'A', 8, 3, 1, 'empty', 30.0, "40GP", 0),
+('A-08-04', 'A', 8, 4, 1, 'empty', 30.0, "40GP", 0),
+('A-08-05', 'A', 8, 5, 1, 'empty', 30.0, "40GP", 0),
+('A-08-06', 'A', 8, 6, 1, 'empty', 30.0, "40GP", 0),
+('A-09-01', 'A', 9, 1, 1, 'empty', 30.0, "40GP", 0),
+('A-09-02', 'A', 9, 2, 1, 'empty', 30.0, "40GP", 0),
+('A-09-03', 'A', 9, 3, 1, 'empty', 30.0, "40GP", 0),
+('A-09-04', 'A', 9, 4, 1, 'empty', 30.0, "40GP", 0),
+('A-09-05', 'A', 9, 5, 1, 'empty', 30.0, "40GP", 0),
+('A-09-06', 'A', 9, 6, 1, 'empty', 30.0, "40GP", 0),
+('A-10-01', 'A', 10, 1, 1, 'empty', 30.0, "40GP", 0),
+('A-10-02', 'A', 10, 2, 1, 'empty', 30.0, "40GP", 0),
+('A-10-03', 'A', 10, 3, 1, 'empty', 30.0, "40GP", 0),
+('A-10-04', 'A', 10, 4, 1, 'empty', 30.0, "40GP", 0),
+('A-10-05', 'A', 10, 5, 1, 'empty', 30.0, "40GP", 0),
+('A-10-06', 'A', 10, 6, 1, 'empty', 30.0, "40GP", 0),
+('A-11-01', 'A', 11, 1, 1, 'empty', 30.0, "all", 0),
+('A-11-02', 'A', 11, 2, 1, 'empty', 30.0, "all", 0),
+('A-11-03', 'A', 11, 3, 1, 'empty', 30.0, "all", 0),
+('A-11-04', 'A', 11, 4, 1, 'empty', 30.0, "all", 0),
+('A-11-05', 'A', 11, 5, 1, 'empty', 30.0, "all", 0),
+('A-11-06', 'A', 11, 6, 1, 'empty', 30.0, "all", 0),
+('A-12-01', 'A', 12, 1, 1, 'empty', 30.0, "all", 0),
+('A-12-02', 'A', 12, 2, 1, 'empty', 30.0, "all", 0),
+('A-12-03', 'A', 12, 3, 1, 'empty', 30.0, "all", 0),
+('A-12-04', 'A', 12, 4, 1, 'empty', 30.0, "all", 0),
+('A-12-05', 'A', 12, 5, 1, 'empty', 30.0, "all", 0),
+('A-12-06', 'A', 12, 6, 1, 'empty', 30.0, "all", 0),
+('A-13-01', 'A', 13, 1, 1, 'empty', 30.0, "all", 0),
+('A-13-02', 'A', 13, 2, 1, 'empty', 30.0, "all", 0),
+('A-13-03', 'A', 13, 3, 1, 'empty', 30.0, "all", 0),
+('A-13-04', 'A', 13, 4, 1, 'empty', 30.0, "all", 0),
+('A-13-05', 'A', 13, 5, 1, 'empty', 30.0, "all", 0),
+('A-13-06', 'A', 13, 6, 1, 'empty', 30.0, "all", 0),
+('A-14-01', 'A', 14, 1, 1, 'empty', 30.0, "all", 0),
+('A-14-02', 'A', 14, 2, 1, 'empty', 30.0, "all", 0),
+('A-14-03', 'A', 14, 3, 1, 'empty', 30.0, "all", 0),
+('A-14-04', 'A', 14, 4, 1, 'empty', 30.0, "all", 0),
+('A-14-05', 'A', 14, 5, 1, 'empty', 30.0, "all", 0),
+('A-14-06', 'A', 14, 6, 1, 'empty', 30.0, "all", 0),
+('A-15-01', 'A', 15, 1, 1, 'empty', 30.0, "all", 0),
+('A-15-02', 'A', 15, 2, 1, 'empty', 30.0, "all", 0),
+('A-15-03', 'A', 15, 3, 1, 'empty', 30.0, "all", 0),
+('A-15-04', 'A', 15, 4, 1, 'empty', 30.0, "all", 0),
+('A-15-05', 'A', 15, 5, 1, 'empty', 30.0, "all", 0),
+('A-15-06', 'A', 15, 6, 1, 'empty', 30.0, "all", 0),
+('B-01-01', 'B', 1, 1, 1, 'empty', 30.0, "40GP", 0),
+('B-01-02', 'B', 1, 2, 1, 'empty', 30.0, "40GP", 0),
+('B-01-03', 'B', 1, 3, 1, 'empty', 30.0, "40GP", 0),
+('B-01-04', 'B', 1, 4, 1, 'empty', 30.0, "40GP", 0),
+('B-01-05', 'B', 1, 5, 1, 'empty', 30.0, "40GP", 0),
+('B-01-06', 'B', 1, 6, 1, 'empty', 30.0, "40GP", 0),
+('B-02-01', 'B', 2, 1, 1, 'empty', 30.0, "40GP", 0),
+('B-02-02', 'B', 2, 2, 1, 'empty', 30.0, "40GP", 0),
+('B-02-03', 'B', 2, 3, 1, 'empty', 30.0, "40GP", 0),
+('B-02-04', 'B', 2, 4, 1, 'empty', 30.0, "40GP", 0),
+('B-02-05', 'B', 2, 5, 1, 'empty', 30.0, "40GP", 0),
+('B-02-06', 'B', 2, 6, 1, 'empty', 30.0, "40GP", 0),
+('B-03-01', 'B', 3, 1, 1, 'empty', 30.0, "40GP", 0),
+('B-03-02', 'B', 3, 2, 1, 'empty', 30.0, "40GP", 0),
+('B-03-03', 'B', 3, 3, 1, 'empty', 30.0, "40GP", 0),
+('B-03-04', 'B', 3, 4, 1, 'empty', 30.0, "40GP", 0),
+('B-03-05', 'B', 3, 5, 1, 'empty', 30.0, "40GP", 0),
+('B-03-06', 'B', 3, 6, 1, 'empty', 30.0, "40GP", 0),
+('B-04-01', 'B', 4, 1, 1, 'empty', 30.0, "40GP", 0),
+('B-04-02', 'B', 4, 2, 1, 'empty', 30.0, "40GP", 0),
+('B-04-03', 'B', 4, 3, 1, 'empty', 30.0, "40GP", 0),
+('B-04-04', 'B', 4, 4, 1, 'empty', 30.0, "40GP", 0),
+('B-04-05', 'B', 4, 5, 1, 'empty', 30.0, "40GP", 0),
+('B-04-06', 'B', 4, 6, 1, 'empty', 30.0, "40GP", 0),
+('B-05-01', 'B', 5, 1, 1, 'empty', 30.0, "40GP", 0),
+('B-05-02', 'B', 5, 2, 1, 'empty', 30.0, "40GP", 0),
+('B-05-03', 'B', 5, 3, 1, 'empty', 30.0, "40GP", 0),
+('B-05-04', 'B', 5, 4, 1, 'empty', 30.0, "40GP", 0),
+('B-05-05', 'B', 5, 5, 1, 'empty', 30.0, "40GP", 0),
+('B-05-06', 'B', 5, 6, 1, 'empty', 30.0, "40GP", 0),
+('B-06-01', 'B', 6, 1, 1, 'empty', 30.0, "40GP", 0),
+('B-06-02', 'B', 6, 2, 1, 'empty', 30.0, "40GP", 0),
+('B-06-03', 'B', 6, 3, 1, 'empty', 30.0, "40GP", 0),
+('B-06-04', 'B', 6, 4, 1, 'empty', 30.0, "40GP", 0),
+('B-06-05', 'B', 6, 5, 1, 'empty', 30.0, "40GP", 0),
+('B-06-06', 'B', 6, 6, 1, 'empty', 30.0, "40GP", 0),
+('B-07-01', 'B', 7, 1, 1, 'empty', 30.0, "40GP", 0),
+('B-07-02', 'B', 7, 2, 1, 'empty', 30.0, "40GP", 0),
+('B-07-03', 'B', 7, 3, 1, 'empty', 30.0, "40GP", 0),
+('B-07-04', 'B', 7, 4, 1, 'empty', 30.0, "40GP", 0),
+('B-07-05', 'B', 7, 5, 1, 'empty', 30.0, "40GP", 0),
+('B-07-06', 'B', 7, 6, 1, 'empty', 30.0, "40GP", 0),
+('B-08-01', 'B', 8, 1, 1, 'empty', 30.0, "40GP", 0),
+('B-08-02', 'B', 8, 2, 1, 'empty', 30.0, "40GP", 0),
+('B-08-03', 'B', 8, 3, 1, 'empty', 30.0, "40GP", 0),
+('B-08-04', 'B', 8, 4, 1, 'empty', 30.0, "40GP", 0),
+('B-08-05', 'B', 8, 5, 1, 'empty', 30.0, "40GP", 0),
+('B-08-06', 'B', 8, 6, 1, 'empty', 30.0, "40GP", 0),
+('B-09-01', 'B', 9, 1, 1, 'empty', 30.0, "40GP", 0),
+('B-09-02', 'B', 9, 2, 1, 'empty', 30.0, "40GP", 0),
+('B-09-03', 'B', 9, 3, 1, 'empty', 30.0, "40GP", 0),
+('B-09-04', 'B', 9, 4, 1, 'empty', 30.0, "40GP", 0),
+('B-09-05', 'B', 9, 5, 1, 'empty', 30.0, "40GP", 0),
+('B-09-06', 'B', 9, 6, 1, 'empty', 30.0, "40GP", 0),
+('B-10-01', 'B', 10, 1, 1, 'empty', 30.0, "40GP", 0),
+('B-10-02', 'B', 10, 2, 1, 'empty', 30.0, "40GP", 0),
+('B-10-03', 'B', 10, 3, 1, 'empty', 30.0, "40GP", 0),
+('B-10-04', 'B', 10, 4, 1, 'empty', 30.0, "40GP", 0),
+('B-10-05', 'B', 10, 5, 1, 'empty', 30.0, "40GP", 0),
+('B-10-06', 'B', 10, 6, 1, 'empty', 30.0, "40GP", 0),
+('B-11-01', 'B', 11, 1, 1, 'empty', 30.0, "all", 0),
+('B-11-02', 'B', 11, 2, 1, 'empty', 30.0, "all", 0),
+('B-11-03', 'B', 11, 3, 1, 'empty', 30.0, "all", 0),
+('B-11-04', 'B', 11, 4, 1, 'empty', 30.0, "all", 0),
+('B-11-05', 'B', 11, 5, 1, 'empty', 30.0, "all", 0),
+('B-11-06', 'B', 11, 6, 1, 'empty', 30.0, "all", 0),
+('B-12-01', 'B', 12, 1, 1, 'empty', 30.0, "all", 0),
+('B-12-02', 'B', 12, 2, 1, 'empty', 30.0, "all", 0),
+('B-12-03', 'B', 12, 3, 1, 'empty', 30.0, "all", 0),
+('B-12-04', 'B', 12, 4, 1, 'empty', 30.0, "all", 0),
+('B-12-05', 'B', 12, 5, 1, 'empty', 30.0, "all", 0),
+('B-12-06', 'B', 12, 6, 1, 'empty', 30.0, "all", 0),
+('B-13-01', 'B', 13, 1, 1, 'empty', 30.0, "all", 0),
+('B-13-02', 'B', 13, 2, 1, 'empty', 30.0, "all", 0),
+('B-13-03', 'B', 13, 3, 1, 'empty', 30.0, "all", 0),
+('B-13-04', 'B', 13, 4, 1, 'empty', 30.0, "all", 0),
+('B-13-05', 'B', 13, 5, 1, 'empty', 30.0, "all", 0),
+('B-13-06', 'B', 13, 6, 1, 'empty', 30.0, "all", 0),
+('B-14-01', 'B', 14, 1, 1, 'empty', 30.0, "all", 0),
+('B-14-02', 'B', 14, 2, 1, 'empty', 30.0, "all", 0),
+('B-14-03', 'B', 14, 3, 1, 'empty', 30.0, "all", 0),
+('B-14-04', 'B', 14, 4, 1, 'empty', 30.0, "all", 0),
+('B-14-05', 'B', 14, 5, 1, 'empty', 30.0, "all", 0),
+('B-14-06', 'B', 14, 6, 1, 'empty', 30.0, "all", 0),
+('B-15-01', 'B', 15, 1, 1, 'empty', 30.0, "all", 0),
+('B-15-02', 'B', 15, 2, 1, 'empty', 30.0, "all", 0),
+('B-15-03', 'B', 15, 3, 1, 'empty', 30.0, "all", 0),
+('B-15-04', 'B', 15, 4, 1, 'empty', 30.0, "all", 0),
+('B-15-05', 'B', 15, 5, 1, 'empty', 30.0, "all", 0),
+('B-15-06', 'B', 15, 6, 1, 'empty', 30.0, "all", 0),
+('C-01-01', 'C', 1, 1, 1, 'empty', 30.0, "40GP", 0),
+('C-01-02', 'C', 1, 2, 1, 'empty', 30.0, "40GP", 0),
+('C-01-03', 'C', 1, 3, 1, 'empty', 30.0, "40GP", 0),
+('C-01-04', 'C', 1, 4, 1, 'empty', 30.0, "40GP", 0),
+('C-01-05', 'C', 1, 5, 1, 'empty', 30.0, "40GP", 0),
+('C-01-06', 'C', 1, 6, 1, 'empty', 30.0, "40GP", 0),
+('C-02-01', 'C', 2, 1, 1, 'empty', 30.0, "40GP", 0),
+('C-02-02', 'C', 2, 2, 1, 'empty', 30.0, "40GP", 0),
+('C-02-03', 'C', 2, 3, 1, 'empty', 30.0, "40GP", 0),
+('C-02-04', 'C', 2, 4, 1, 'empty', 30.0, "40GP", 0),
+('C-02-05', 'C', 2, 5, 1, 'empty', 30.0, "40GP", 0),
+('C-02-06', 'C', 2, 6, 1, 'empty', 30.0, "40GP", 0),
+('C-03-01', 'C', 3, 1, 1, 'empty', 30.0, "40GP", 0),
+('C-03-02', 'C', 3, 2, 1, 'empty', 30.0, "40GP", 0),
+('C-03-03', 'C', 3, 3, 1, 'empty', 30.0, "40GP", 0),
+('C-03-04', 'C', 3, 4, 1, 'empty', 30.0, "40GP", 0),
+('C-03-05', 'C', 3, 5, 1, 'empty', 30.0, "40GP", 0),
+('C-03-06', 'C', 3, 6, 1, 'empty', 30.0, "40GP", 0),
+('C-04-01', 'C', 4, 1, 1, 'empty', 30.0, "40GP", 0),
+('C-04-02', 'C', 4, 2, 1, 'empty', 30.0, "40GP", 0),
+('C-04-03', 'C', 4, 3, 1, 'empty', 30.0, "40GP", 0),
+('C-04-04', 'C', 4, 4, 1, 'empty', 30.0, "40GP", 0),
+('C-04-05', 'C', 4, 5, 1, 'empty', 30.0, "40GP", 0),
+('C-04-06', 'C', 4, 6, 1, 'empty', 30.0, "40GP", 0),
+('C-05-01', 'C', 5, 1, 1, 'empty', 30.0, "40GP", 0),
+('C-05-02', 'C', 5, 2, 1, 'empty', 30.0, "40GP", 0),
+('C-05-03', 'C', 5, 3, 1, 'empty', 30.0, "40GP", 0),
+('C-05-04', 'C', 5, 4, 1, 'empty', 30.0, "40GP", 0),
+('C-05-05', 'C', 5, 5, 1, 'empty', 30.0, "40GP", 0),
+('C-05-06', 'C', 5, 6, 1, 'empty', 30.0, "40GP", 0),
+('C-06-01', 'C', 6, 1, 1, 'empty', 30.0, "40GP", 0),
+('C-06-02', 'C', 6, 2, 1, 'empty', 30.0, "40GP", 0),
+('C-06-03', 'C', 6, 3, 1, 'empty', 30.0, "40GP", 0),
+('C-06-04', 'C', 6, 4, 1, 'empty', 30.0, "40GP", 0),
+('C-06-05', 'C', 6, 5, 1, 'empty', 30.0, "40GP", 0),
+('C-06-06', 'C', 6, 6, 1, 'empty', 30.0, "40GP", 0),
+('C-07-01', 'C', 7, 1, 1, 'empty', 30.0, "40GP", 0),
+('C-07-02', 'C', 7, 2, 1, 'empty', 30.0, "40GP", 0),
+('C-07-03', 'C', 7, 3, 1, 'empty', 30.0, "40GP", 0),
+('C-07-04', 'C', 7, 4, 1, 'empty', 30.0, "40GP", 0),
+('C-07-05', 'C', 7, 5, 1, 'empty', 30.0, "40GP", 0),
+('C-07-06', 'C', 7, 6, 1, 'empty', 30.0, "40GP", 0),
+('C-08-01', 'C', 8, 1, 1, 'empty', 30.0, "40GP", 0),
+('C-08-02', 'C', 8, 2, 1, 'empty', 30.0, "40GP", 0),
+('C-08-03', 'C', 8, 3, 1, 'empty', 30.0, "40GP", 0),
+('C-08-04', 'C', 8, 4, 1, 'empty', 30.0, "40GP", 0),
+('C-08-05', 'C', 8, 5, 1, 'empty', 30.0, "40GP", 0),
+('C-08-06', 'C', 8, 6, 1, 'empty', 30.0, "40GP", 0),
+('C-09-01', 'C', 9, 1, 1, 'empty', 30.0, "40GP", 0),
+('C-09-02', 'C', 9, 2, 1, 'empty', 30.0, "40GP", 0),
+('C-09-03', 'C', 9, 3, 1, 'empty', 30.0, "40GP", 0),
+('C-09-04', 'C', 9, 4, 1, 'empty', 30.0, "40GP", 0),
+('C-09-05', 'C', 9, 5, 1, 'empty', 30.0, "40GP", 0),
+('C-09-06', 'C', 9, 6, 1, 'empty', 30.0, "40GP", 0),
+('C-10-01', 'C', 10, 1, 1, 'empty', 30.0, "40GP", 0),
+('C-10-02', 'C', 10, 2, 1, 'empty', 30.0, "40GP", 0),
+('C-10-03', 'C', 10, 3, 1, 'empty', 30.0, "40GP", 0),
+('C-10-04', 'C', 10, 4, 1, 'empty', 30.0, "40GP", 0),
+('C-10-05', 'C', 10, 5, 1, 'empty', 30.0, "40GP", 0),
+('C-10-06', 'C', 10, 6, 1, 'empty', 30.0, "40GP", 0),
+('C-11-01', 'C', 11, 1, 1, 'empty', 30.0, "all", 0),
+('C-11-02', 'C', 11, 2, 1, 'empty', 30.0, "all", 0),
+('C-11-03', 'C', 11, 3, 1, 'empty', 30.0, "all", 0),
+('C-11-04', 'C', 11, 4, 1, 'empty', 30.0, "all", 0),
+('C-11-05', 'C', 11, 5, 1, 'empty', 30.0, "all", 0),
+('C-11-06', 'C', 11, 6, 1, 'empty', 30.0, "all", 0),
+('C-12-01', 'C', 12, 1, 1, 'empty', 30.0, "all", 0),
+('C-12-02', 'C', 12, 2, 1, 'empty', 30.0, "all", 0),
+('C-12-03', 'C', 12, 3, 1, 'empty', 30.0, "all", 0),
+('C-12-04', 'C', 12, 4, 1, 'empty', 30.0, "all", 0),
+('C-12-05', 'C', 12, 5, 1, 'empty', 30.0, "all", 0),
+('C-12-06', 'C', 12, 6, 1, 'empty', 30.0, "all", 0),
+('C-13-01', 'C', 13, 1, 1, 'empty', 30.0, "all", 0),
+('C-13-02', 'C', 13, 2, 1, 'empty', 30.0, "all", 0),
+('C-13-03', 'C', 13, 3, 1, 'empty', 30.0, "all", 0),
+('C-13-04', 'C', 13, 4, 1, 'empty', 30.0, "all", 0),
+('C-13-05', 'C', 13, 5, 1, 'empty', 30.0, "all", 0),
+('C-13-06', 'C', 13, 6, 1, 'empty', 30.0, "all", 0),
+('C-14-01', 'C', 14, 1, 1, 'empty', 30.0, "all", 0),
+('C-14-02', 'C', 14, 2, 1, 'empty', 30.0, "all", 0),
+('C-14-03', 'C', 14, 3, 1, 'empty', 30.0, "all", 0),
+('C-14-04', 'C', 14, 4, 1, 'empty', 30.0, "all", 0),
+('C-14-05', 'C', 14, 5, 1, 'empty', 30.0, "all", 0),
+('C-14-06', 'C', 14, 6, 1, 'empty', 30.0, "all", 0),
+('C-15-01', 'C', 15, 1, 1, 'empty', 30.0, "all", 0),
+('C-15-02', 'C', 15, 2, 1, 'empty', 30.0, "all", 0),
+('C-15-03', 'C', 15, 3, 1, 'empty', 30.0, "all", 0),
+('C-15-04', 'C', 15, 4, 1, 'empty', 30.0, "all", 0),
+('C-15-05', 'C', 15, 5, 1, 'empty', 30.0, "all", 0),
+('C-15-06', 'C', 15, 6, 1, 'empty', 30.0, "all", 0);
 
 -- ========================================================
 -- 创建视图 - 综合查询视图
@@ -581,9 +890,9 @@ INSERT INTO users (user_id, username, password_hash, real_name, role, department
 
 -- 视图1: 场内集装箱综合视图
 CREATE VIEW v_yard_container_full AS
-SELECT 
+SELECT
     yci.container_id,
-    yci.container_type,
+    cm.container_type,
     yci.container_status,
     yci.current_slot_id,
     ys.zone_id,
@@ -599,6 +908,7 @@ SELECT
     sic.manifest_info,
     sic.damage_status
 FROM yard_container_inventory yci
+LEFT JOIN containers_master cm ON yci.container_id = cm.container_id
 LEFT JOIN yard_slots ys ON yci.current_slot_id = ys.slot_id
 LEFT JOIN yard_zones yz ON ys.zone_id = yz.zone_id
 LEFT JOIN ships s ON yci.ship_id = s.ship_id

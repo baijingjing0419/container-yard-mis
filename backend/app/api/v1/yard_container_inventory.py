@@ -30,7 +30,7 @@ def _build_response(inv: YardContainerInventory) -> InventoryResponse:
             f"{inv.current_slot.row_num}排-{inv.current_slot.col_num}位"
         )
     if inv.container:
-        data["container_info"] = f"{inv.container.container_type} | {inv.container.voyage_no}"
+        data["container_info"] = f"{inv.container.container_type} | {inv.voyage_no or ''}"
 
     return InventoryResponse(**data)
 
