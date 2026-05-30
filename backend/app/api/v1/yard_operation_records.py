@@ -34,7 +34,7 @@ def _build_response(op: YardOperationRecord) -> OperationResponse:
             f"{op.target_slot.zone_id}区-{op.target_slot.row_num}排-{op.target_slot.col_num}位"
         )
     if op.container:
-        data["container_info"] = f"{op.container.container_type} | {op.container.voyage_no}"
+        data["container_info"] = f"{op.container.container_type} | {op.container.owner_company or ''}"
 
     return OperationResponse(**data)
 
