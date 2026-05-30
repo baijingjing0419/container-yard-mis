@@ -8,8 +8,9 @@ from app.core.database import Base
 class SeaOutboundContainer(Base):
     __tablename__ = "sea_outbound_containers"
 
-    container_id: Mapped[str] = mapped_column(String(20), primary_key=True, comment="箱号")
-    container_type: Mapped[str] = mapped_column(String(10), nullable=False, comment="箱型")
+    container_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("containers_master.container_id"), primary_key=True, comment="箱号"
+    )
     container_status: Mapped[str] = mapped_column(String(20), default="loaded", comment="箱状态")
     ship_id: Mapped[str] = mapped_column(String(20), ForeignKey("ships.ship_id"), nullable=False, comment="目标船名航次")
     voyage_no: Mapped[str] = mapped_column(String(20), nullable=False, comment="航次号")
