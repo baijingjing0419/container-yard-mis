@@ -7,7 +7,7 @@
         <div class="card-title">今日陆侧出场作业列表</div>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-primary" @click="openCreate"><i class="fas fa-plus"></i> 新增出场记录</button>
-          <button class="btn btn-secondary"><i class="fas fa-filter"></i> 筛选</button>
+
         </div>
       </div>
       <div class="card-body" style="padding:0;">

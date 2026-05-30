@@ -25,7 +25,7 @@
           <button class="btn btn-primary" @click="openCreateDialog">
             <i class="fas fa-plus"></i> 新增调度指令
           </button>
-          <button class="btn btn-secondary"><i class="fas fa-filter"></i> 筛选</button>
+
         </div>
       </div>
       <div class="card-body" style="padding: 0;">

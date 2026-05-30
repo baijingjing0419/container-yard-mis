@@ -96,12 +96,20 @@ async function fetchData() {
   }
 }
 
+const SOURCE_LABELS = {
+  sea_inbound: '海侧进箱', sea_outbound: '海侧出场',
+  land_inbound: '陆侧进箱', land_outbound: '陆侧出场',
+  dispatch: '中控调度', yard_shift: '场内调箱',
+  岸桥班组: '岸桥班组', 场桥班组: '场桥班组', 闸口班组: '闸口班组', 内集卡班组: '内集卡班组',
+}
+function sourceLabel(k) { return SOURCE_LABELS[k] || k }
+
 function buildCharts(items) {
   const deptMap = {}
   const equipMap = {}
   const monthMap = {}
   for (const op of items || []) {
-    const dept = op.execute_dept || op.source_operation || '其他'
+    const dept = sourceLabel(op.execute_dept || op.source_operation || '其他')
     deptMap[dept] = (deptMap[dept] || 0) + 1
     const equip = op.equipment_id
     if (equip) equipMap[equip] = (equipMap[equip] || 0) + 1

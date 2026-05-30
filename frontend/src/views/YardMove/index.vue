@@ -8,7 +8,7 @@
         <div class="card-title">调箱作业记录</div>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-primary" @click="openCreate"><i class="fas fa-plus"></i> 新增调箱指令</button>
-          <button class="btn btn-secondary"><i class="fas fa-filter"></i> 筛选</button>
+
         </div>
       </div>
       <div class="card-body" style="padding:0;">
