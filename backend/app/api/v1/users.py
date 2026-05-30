@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.models.users import User
 from app.schemas.users import UserCreate, UserUpdate, UserStatusUpdate, UserResponse
 from app.schemas.common import PaginatedResponse
+from app.api.deps import RoleChecker
 
 router = APIRouter(prefix="/users", tags=["用户管理"])
 
@@ -44,7 +45,11 @@ async def get_user(user_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("", response_model=UserResponse, status_code=201, summary="创建用户")
-async def create_user(data: UserCreate, db: AsyncSession = Depends(get_db)):
+async def create_user(
+    data: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    _current_user = Depends(RoleChecker(["admin"])),
+):
     if await db.get(User, data.user_id):
         raise HTTPException(status_code=409, detail=f"用户 {data.user_id} 已存在")
     try:
@@ -58,7 +63,12 @@ async def create_user(data: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.put("/{user_id}/status", response_model=UserResponse, summary="更新用户状态")
-async def update_status(user_id: str, data: UserStatusUpdate, db: AsyncSession = Depends(get_db)):
+async def update_status(
+    user_id: str,
+    data: UserStatusUpdate,
+    db: AsyncSession = Depends(get_db),
+    _current_user = Depends(RoleChecker(["admin"])),
+):
     u = await db.get(User, user_id)
     if not u:
         raise HTTPException(status_code=404, detail=f"用户 {user_id} 不存在")
