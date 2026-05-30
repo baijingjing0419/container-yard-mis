@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 class InventoryCreate(BaseModel):
     """新增台账记录请求体（集装箱入场落箱时触发）"""
     container_id: str = Field(..., max_length=20, description="箱号")
-    container_type: str = Field(..., max_length=10, description="箱型")
     container_status: str = Field(default="in_yard", max_length=20, description="箱状态")
     current_slot_id: str | None = Field(None, max_length=20, description="当前堆场位置")
     entry_time: datetime | None = Field(None, description="入场时间")
@@ -23,7 +22,6 @@ class InventoryCreate(BaseModel):
 
 class InventoryUpdate(BaseModel):
     """更新台账记录请求体"""
-    container_type: str | None = Field(None, max_length=10, description="箱型")
     container_status: str | None = Field(None, max_length=20, description="箱状态")
     current_slot_id: str | None = Field(None, max_length=20, description="当前堆场位置")
     expected_exit_time: datetime | None = Field(None, description="预计出场时间")
@@ -41,14 +39,12 @@ class InventoryLocationUpdate(BaseModel):
 
 
 class InventoryResponse(BaseModel):
-    """场内台账响应体 - 含关联数据展开"""
+    """场内台账响应体 - 含关联数据展开（container_type 通过 containers_master 关联获取）"""
     inventory_id: int
     container_id: str
-    container_type: str
     container_status: str | None = None
     current_slot_id: str | None = None
     previous_slot_id: str | None = None
-    position_history: str | None = None
     entry_time: datetime | None = None
     expected_exit_time: datetime | None = None
     actual_exit_time: datetime | None = None
