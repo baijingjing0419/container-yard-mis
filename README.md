@@ -23,10 +23,7 @@
 
 | 页面 | 路由 | 核心功能 |
 |------|------|----------|
-| **系统初始化** | `/setup` | 首次部署向导：创建管理员 + 检测堆场配置 |
-| **首次登录** | `/first-login` | 员工首次登录设置密码 |
 | **登录** | `/login` | 工号+密码登录（PBKDF2 哈希），JWT 认证 |
-| **数据导入** | `/import` | CSV 批量导入员工、船舶、集装箱数据 |
 | **运营总览** | `/dashboard` | 6 个实时统计卡片 + 24h 作业趋势图 + 堆场热力图 + 告警时间线 |
 | **海侧进箱** | `/sea/inbound` | 卸船入场全流程，动态显示当前作业计划（主数据优先校验） |
 | **海侧出场** | `/sea/outbound` | 装船出场全流程，动态显示当前作业计划 |
@@ -39,7 +36,6 @@
 | **调度指令** | `/dispatch` | 中控调度指令下发与执行追踪（虚拟滚动） |
 | **箱量查询** | `/query` | 按箱号/船名/堆位多维度查询（虚拟滚动） |
 | **效率统计** | `/statistics` | 班组效率 + 月度趋势 + 设备利用率（全动态图表） |
-| **报表中心** | `/reports` | 系统日志与报表历史查看 |
 
 ---
 
@@ -139,8 +135,6 @@ mis/
         │   ├── BaseModal.vue          # 通用模态框
         │   └── StatusBadge.vue        # 状态徽章
         └── views/
-            ├── Setup/index.vue        # ★ 系统初始化向导
-            ├── FirstLogin/index.vue   # ★ 首次登录设置密码
             ├── Login/index.vue        # ★ 登录页
             ├── Dashboard/index.vue    # 运营总览
             ├── SeaInbound/index.vue   # 海侧进箱
@@ -153,8 +147,7 @@ mis/
             ├── YardMove/index.vue     # 调箱作业
             ├── Dispatch/index.vue     # 调度指令（虚拟滚动）
             ├── Query/index.vue        # 箱量查询（虚拟滚动）
-            ├── Statistics/index.vue   # 效率统计（全动态图表）
-            └── Reports/index.vue      # 报表中心
+            └── Statistics/index.vue   # 效率统计（全动态图表）
 ```
 
 ---
@@ -349,7 +342,7 @@ yard_slots.slot_id ──→ container_move_logs.from_slot_id
 
 | 模块 | 端点 | 前缀 | 说明 |
 |------|:--:|------|------|
-| 认证 | 1 | `/api/v1/auth` | ★ JWT 登录认证，PBKDF2 验密（重构） |
+| 认证 | 1 | `/api/v1/auth` | ★ JWT 登录认证，PBKDF2 验密 |
 | 集装箱主数据 | 3 | `/api/v1/containers` | ★ 主数据 CRUD + 轨迹查询（新增） |
 | 船舶管理 | 5 | `/api/v1/ships` | 船舶 CRUD |
 | 堆场区域 | 4 | `/api/v1/yard-zones` | 区域查询与利用率 |
@@ -379,17 +372,15 @@ yard_slots.slot_id ──→ container_move_logs.from_slot_id
 
 输入**工号 + 密码**登录，后端采用 **PBKDF2-HMAC-SHA256**（10 万次迭代）哈希存储密码，登录成功后签发 **JWT**（8 小时有效），前端自动在后续请求中携带 `Authorization: Bearer` 头。
 
-登录页面底部设有 **「开发者入口」** 按钮，点击后跳过认证直接以管理员身份进入主界面，方便开发调试。
-
 ### 预置账号
 
-| 工号 | 用户名 | 姓名 | 角色 | 部门 | 密码 |
-|------|--------|------|------|------|------|
-| `1` | dispatcher | 李明 | 中控调度员 | 调度中心 | `123` |
-| `2` | gate_clerk | 王芳 | 闸口管理员 | 闸口管理 | `123` |
-| `3` | qc_op | 赵岸 | 岸桥操作员 | 岸桥班组 | `123` |
-| `4` | yc_op | 钱场 | 场桥操作员 | 场桥班组 | `123` |
-| `5` | admin | 管理员 | 系统管理员 | 信息中心 | `123` |
+| 工号 | 姓名 | 角色 | 部门 | 密码 |
+|------|------|------|------|------|
+| `1` | 张瀚 | 系统管理员 | 信息中心 | `123` |
+| `2` | 李策 | 中控调度员 | 调度中心 | `123` |
+| `3` | 王卫 | 闸口管理员 | 闸口管理 | `123` |
+| `4` | 赵起 | 岸桥操作员 | 岸桥班组 | `123` |
+| `5` | 陈桥 | 场桥操作员 | 场桥班组 | `123` |
 
 ### 登录流程
 
@@ -466,7 +457,6 @@ yard_slots.slot_id ──→ container_move_logs.from_slot_id
 | `/dispatch` | Y | Y | - | Y | Y |
 | `/query` | Y | Y | Y | Y | Y |
 | `/statistics` | Y | Y | - | - | - |
-| `/reports` | Y | - | - | - | - |
 
 > 登录重定向：admin→/dashboard，dispatcher→/dispatch，gate_clerk→/land/inbound，qc_op→/sea/inbound，yc_op→/yard/move
 
@@ -476,15 +466,41 @@ yard_slots.slot_id ──→ container_move_logs.from_slot_id
 
 ### 数据库操作
 
-```bash
-# 新环境：导入全量建库脚本（始终最新版本）
-docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/schema.sql
+### 写入测试数据
 
-# 导入测试种子数据
+```bash
+# Docker 环境：重导入种子数据（会清空并重建所有业务数据）
 docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/seeds/dev_seed.sql
 
-# 清理测试数据（保留基础参考数据）
+# 本地环境
+mysql -u root -p ContainerTerminalDB < database/seeds/dev_seed.sql
+```
+
+种子数据包含 **5 艘在泊船舶、200 个集装箱、190 条场内台账、70 条作业记录、40 条闸口通行、30 条海侧出场、10 条陆侧出场、5 条海侧计划、10 条陆侧计划**，以及 60 条移动流水和 7 条告警。作业记录分布在 3-5 月，闸口通行中 20 条有时长数据、20 条仍在场。
+
+> **注意**：导入种子数据会 **清空** 所有业务表（ships / yard_zones / yard_slots / users 保留），然后重建全部业务数据。容器重启后后端启动 seeder 会自动补回 5 个内置用户。
+
+### 清除测试数据
+
+```bash
+# Docker 环境：保留基础数据，清空所有业务表
 docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/seeds/cleanup_test_data.sql
+
+# 本地环境
+mysql -u root -p ContainerTerminalDB < database/seeds/cleanup_test_data.sql
+```
+
+清除操作会 **TRUNCATE** 所有业务表和流水日志表（含 container_move_logs、yard_operation_records、dispatch_orders、gate_io_records 等共 15 张表），并将 `yard_slots` 全部重置为 `empty`。
+
+**保留的基础数据**：ships（船舶）、yard_zones（堆场区域）、yard_slots（箱位布局）、users（用户）。容器重启后 5 个内置用户自动恢复。
+
+### 新环境初始化
+
+```bash
+# 第一次部署：执行全量建库脚本
+docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/schema.sql
+# 然后写入测试数据
+docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/seeds/dev_seed.sql
 ```
 
 ### 乐观锁压测
