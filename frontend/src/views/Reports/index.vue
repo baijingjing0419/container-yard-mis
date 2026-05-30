@@ -63,13 +63,31 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import api from '../../api/request'
 import StatusBadge from '../../components/StatusBadge.vue'
 
-const reportHistory = ref([
-  { id:'RPT-20260528-001', name:'2026年5月28日箱量统计日报', type:'箱量统计', period:'2026-05-28', time:'2026-05-28 11:00', author:'码头管理员', status:'已生成' },
-  { id:'RPT-20260527-002', name:'2026年5月第4周作业效率周报', type:'效率分析', period:'2026-05-20 至 2026-05-27', time:'2026-05-27 18:00', author:'码头管理员', status:'已生成' },
-])
+const reportHistory = ref([])
+const reportLoading = ref(true)
+
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/system-logs', { params: { log_type: 'report', page_size: 20 } })
+    reportHistory.value = (data?.items || []).map(item => ({
+      id: item.record_id || item.log_id,
+      name: item.operation || item.table_name || '系统日志',
+      type: item.log_type || '系统',
+      period: item.created_at?.substring(0, 10) || '--',
+      time: item.created_at?.substring(0, 16) || '--',
+      author: item.user_id || '系统',
+      status: '已记录',
+    }))
+  } catch {
+    reportHistory.value = []
+  } finally {
+    reportLoading.value = false
+  }
+})
 </script>
 
 <style scoped>

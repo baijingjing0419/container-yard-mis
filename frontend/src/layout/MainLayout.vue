@@ -93,6 +93,13 @@
     <div class="content-area">
       <router-view />
     </div>
+
+    <div class="toast-container">
+      <div v-for="t in appStore.toasts" :key="t.id" :class="['toast', `toast-${t.type}`]">
+        <i :class="t.type === 'success' ? 'fas fa-check-circle' : t.type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-info-circle'"></i>
+        {{ t.message }}
+      </div>
+    </div>
   </main>
 </template>
 

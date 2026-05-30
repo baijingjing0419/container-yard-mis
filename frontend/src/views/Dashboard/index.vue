@@ -3,66 +3,23 @@
     <div class="page-title">运营总览 Dashboard</div>
     <div class="page-subtitle">实时监控码头堆场运营状态与关键指标</div>
 
+    <div v-if="error" class="alert alert-warning" style="margin-bottom: 16px;">
+      <i class="fas fa-exclamation-triangle"></i> 部分数据加载失败，请刷新重试
+    </div>
+
     <div class="stats-grid">
-      <div class="stat-card">
+      <div class="stat-card" v-for="card in statCards" :key="card.label">
         <div class="stat-header">
           <div>
-            <div class="stat-value">2,847</div>
-            <div class="stat-label">场内集装箱总量</div>
+            <div class="stat-value" v-if="!loading">{{ card.value }}</div>
+            <div class="stat-value" v-else style="color:#cbd5e1;">--</div>
+            <div class="stat-label">{{ card.label }}</div>
           </div>
-          <div class="stat-icon blue"><i class="fas fa-box"></i></div>
+          <div class="stat-icon" :class="card.color"><i :class="card.icon"></i></div>
         </div>
-        <div class="stat-change up"><i class="fas fa-arrow-up"></i> 12.5% 较昨日</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-header">
-          <div>
-            <div class="stat-value">156</div>
-            <div class="stat-label">今日海侧作业量</div>
-          </div>
-          <div class="stat-icon cyan"><i class="fas fa-ship"></i></div>
+        <div class="stat-change" :class="card.trend >= 0 ? 'up' : 'down'">
+          <i :class="card.trend >= 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i> {{ card.sub }}
         </div>
-        <div class="stat-change up"><i class="fas fa-arrow-up"></i> 8.3% 较昨日</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-header">
-          <div>
-            <div class="stat-value">423</div>
-            <div class="stat-label">今日陆侧作业量</div>
-          </div>
-          <div class="stat-icon green"><i class="fas fa-truck"></i></div>
-        </div>
-        <div class="stat-change up"><i class="fas fa-arrow-up"></i> 15.2% 较昨日</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-header">
-          <div>
-            <div class="stat-value">87.3%</div>
-            <div class="stat-label">堆场利用率</div>
-          </div>
-          <div class="stat-icon orange"><i class="fas fa-warehouse"></i></div>
-        </div>
-        <div class="stat-change down"><i class="fas fa-arrow-down"></i> 2.1% 较昨日</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-header">
-          <div>
-            <div class="stat-value">28</div>
-            <div class="stat-label">待执行调度指令</div>
-          </div>
-          <div class="stat-icon purple"><i class="fas fa-tasks"></i></div>
-        </div>
-        <div class="stat-change down"><i class="fas fa-arrow-down"></i> 5 较上小时</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-header">
-          <div>
-            <div class="stat-value">32min</div>
-            <div class="stat-label">平均作业时长</div>
-          </div>
-          <div class="stat-icon red"><i class="fas fa-clock"></i></div>
-        </div>
-        <div class="stat-change up"><i class="fas fa-arrow-up"></i> 3min 较昨日</div>
       </div>
     </div>
 
@@ -70,48 +27,29 @@
       <div class="card">
         <div class="card-header">
           <div class="card-title"><i class="fas fa-chart-area" style="margin-right: 8px; color: #3b82f6;"></i>24小时作业趋势</div>
-          <div>
-            <button class="btn btn-sm btn-secondary">今日</button>
-            <button class="btn btn-sm btn-secondary">本周</button>
-            <button class="btn btn-sm btn-secondary">本月</button>
-          </div>
         </div>
         <div class="card-body">
-          <div class="chart-container">
-            <canvas ref="trendChart"></canvas>
+          <div v-if="trendLoading" style="text-align:center;padding:60px;color:#94a3b8;">加载中...</div>
+          <div class="chart-container" v-show="!trendLoading">
+            <canvas ref="trendCanvas"></canvas>
           </div>
         </div>
       </div>
       <div class="card">
         <div class="card-header">
           <div class="card-title"><i class="fas fa-bell" style="margin-right: 8px; color: #f97316;"></i>实时告警</div>
-          <span class="status-badge warning"><span class="dot red"></span>5 条未处理</span>
+          <span v-if="alerts.length" class="status-badge warning"><span class="dot red"></span>{{ alerts.length }} 条未处理</span>
+          <span v-else class="status-badge completed">暂无告警</span>
         </div>
         <div class="card-body">
-          <div class="timeline">
-            <div class="timeline-item">
-              <div class="timeline-dot" style="background: #ef4444; box-shadow: 0 0 0 2px #ef4444;"></div>
-              <div class="timeline-time">11:18:32</div>
-              <div class="timeline-title">堆场A区-12B 集装箱超期滞留</div>
-              <div class="timeline-content">箱号 MSKU7892345 滞留时长超过72小时，需紧急处理</div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot" style="background: #f97316; box-shadow: 0 0 0 2px #f97316;"></div>
-              <div class="timeline-time">11:15:07</div>
-              <div class="timeline-title">海侧作业计划延误</div>
-              <div class="timeline-content">航次 COSCO-2405 卸船作业延误30分钟</div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot" style="background: #3b82f6; box-shadow: 0 0 0 2px #3b82f6;"></div>
-              <div class="timeline-time">11:02:45</div>
-              <div class="timeline-title">闸口通行拥堵预警</div>
-              <div class="timeline-content">陆侧闸口平均等待时间超过15分钟</div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot" style="background: #3b82f6; box-shadow: 0 0 0 2px #3b82f6;"></div>
-              <div class="timeline-time">10:48:12</div>
-              <div class="timeline-title">场桥设备维护提醒</div>
-              <div class="timeline-content">YC-03号场桥达到保养周期，建议安排维护</div>
+          <div v-if="alertsLoading" style="text-align:center;padding:40px;color:#94a3b8;">加载中...</div>
+          <div v-else-if="!alerts.length" style="text-align:center;padding:40px;color:#94a3b8;">当前无未处理告警</div>
+          <div class="timeline" v-else>
+            <div class="timeline-item" v-for="a in alerts" :key="a.alert_id">
+              <div class="timeline-dot" :style="alertDotStyle(a.alert_level)"></div>
+              <div class="timeline-time">{{ a.created_at ? a.created_at.substring(11, 19) : '--' }}</div>
+              <div class="timeline-title">{{ a.alert_title }}</div>
+              <div class="timeline-content">{{ a.alert_content || '无详情' }}</div>
             </div>
           </div>
         </div>
@@ -130,18 +68,13 @@
           </div>
         </div>
         <div class="card-body">
-          <div style="display: flex; gap: 20px;">
-            <div style="flex: 1;">
-              <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #1e40af;">A区 - 进口箱区</div>
-              <div class="yard-map" ref="yardA"></div>
-            </div>
-            <div style="flex: 1;">
-              <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #1e40af;">B区 - 出口箱区</div>
-              <div class="yard-map" ref="yardB"></div>
-            </div>
-            <div style="flex: 1;">
-              <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #1e40af;">C区 - 中转箱区</div>
-              <div class="yard-map" ref="yardC"></div>
+          <div v-if="yardLoading" style="text-align:center;padding:40px;color:#94a3b8;">加载中...</div>
+          <div v-else style="display: flex; gap: 20px;">
+            <div style="flex: 1;" v-for="zone in yardZones" :key="zone.zone_id">
+              <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #1e40af;">
+                {{ zone.zone_name || (zone.zone_id + '区') }}
+              </div>
+              <div class="yard-map" :ref="el => setYardRef(zone.zone_id, el)"></div>
             </div>
           </div>
         </div>
@@ -151,50 +84,216 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import Chart from 'chart.js/auto'
+import api from '../../api/request'
+import { getInventoryList } from '../../api/yardInventory'
+import { getDispatchOrderList } from '../../api/dispatchOrder'
+import { getOperationList } from '../../api/yardOperation'
+import { getSeaInboundList } from '../../api/seaInbound'
+import { getLandInboundList } from '../../api/landInbound'
+import { useAppStore } from '../../store/app'
 
-const trendChart = ref(null)
-const yardA = ref(null)
-const yardB = ref(null)
-const yardC = ref(null)
+const loading = ref(true)
+const error = ref(false)
+const trendLoading = ref(true)
+const alertsLoading = ref(true)
+const yardLoading = ref(true)
 
-function generateYardMap(container) {
+const yardZones = ref([])
+const yardSlotMap = reactive({})
+const yardRefs = reactive({})
+const alerts = ref([])
+const trendCanvas = ref(null)
+const appStore = useAppStore()
+let chartInstance = null
+
+const statCards = reactive([
+  { label: '场内集装箱总量', value: '--', color: 'blue', icon: 'fas fa-box', trend: 0, sub: '加载中...' },
+  { label: '今日海侧作业量', value: '--', color: 'cyan', icon: 'fas fa-ship', trend: 0, sub: '加载中...' },
+  { label: '今日陆侧作业量', value: '--', color: 'green', icon: 'fas fa-truck', trend: 0, sub: '加载中...' },
+  { label: '堆场利用率', value: '--', color: 'orange', icon: 'fas fa-warehouse', trend: 0, sub: '加载中...' },
+  { label: '待执行调度指令', value: '--', color: 'purple', icon: 'fas fa-tasks', trend: 0, sub: '加载中...' },
+  { label: '平均作业时长', value: '--', color: 'red', icon: 'fas fa-clock', trend: 0, sub: '加载中...' },
+])
+
+function setYardRef(zoneId, el) {
+  if (el) yardRefs[zoneId] = el
+}
+
+function alertDotStyle(level) {
+  const colors = { critical: '#ef4444', warning: '#f97316', info: '#3b82f6' }
+  const color = colors[level] || '#3b82f6'
+  return { background: color, boxShadow: `0 0 0 2px ${color}` }
+}
+
+function buildTrendChart(hourlySea, hourlyLand) {
+  if (!trendCanvas.value) return
+  const labels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`)
+  if (chartInstance) chartInstance.destroy()
+  chartInstance = new Chart(trendCanvas.value, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '海侧作业量', data: hourlySea,
+          borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4,
+        },
+        {
+          label: '陆侧作业量', data: hourlyLand,
+          borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', fill: true, tension: 0.4,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { beginAtZero: true } },
+    },
+  })
+}
+
+function renderYardMap(zoneId) {
+  const container = yardRefs[zoneId]
   if (!container) return
-  const statuses = ['occupied','occupied','occupied','empty','occupied','reserved','occupied','empty','occupied','maintenance','occupied','empty']
   container.innerHTML = ''
-  for (let i = 1; i <= 48; i++) {
-    const slot = document.createElement('div')
-    const status = statuses[Math.floor(Math.random() * statuses.length)]
-    slot.className = `yard-slot ${status}`
-    slot.innerHTML = `<div class="slot-id">${String(i).padStart(2, '0')}</div>`
-    if (status === 'occupied') slot.innerHTML += '<div class="slot-status">箱</div>'
-    slot.onclick = () => alert(`箱位 ${status === 'occupied' ? '已占用' : status === 'empty' ? '空闲' : status === 'reserved' ? '预留' : '维护中'}`)
-    container.appendChild(slot)
+  const slots = yardSlotMap[zoneId] || []
+  if (!slots.length) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">无箱位数据</div>'
+    return
+  }
+  for (const slot of slots) {
+    const el = document.createElement('div')
+    el.className = `yard-slot ${slot.slot_status || 'empty'}`
+    el.innerHTML = `<div class="slot-id">${slot.slot_id?.slice(-4) || '--'}</div>`
+    if (slot.slot_status === 'occupied') el.innerHTML += '<div class="slot-status">箱</div>'
+    el.onclick = () => {
+      const texts = { empty: '空闲', occupied: '已占用', reserved: '预留', maintenance: '维护中' }
+      appStore.showToast(`箱位 ${slot.slot_id} | 状态：${texts[slot.slot_status] || slot.slot_status}`, 'info')
+    }
+    container.appendChild(el)
+  }
+}
+
+async function fetchDashboardData() {
+  loading.value = true
+  error.value = false
+
+  try {
+    const results = await Promise.allSettled([
+      getInventoryList({ page_size: 1 }),
+      getSeaInboundList({ page_size: 1 }),
+      getLandInboundList({ page_size: 1 }),
+      api.get('/yard-zones'),
+      getDispatchOrderList({ execution_status: 'issued', page_size: 1 }),
+      getOperationList({ page_size: 1000 }),
+    ])
+
+    const [
+      inventoryR, seaInR, landInR, zonesR, pendingR, opsR,
+    ] = results
+
+    const totalContainers = inventoryR.status === 'fulfilled' ? (inventoryR.value?.total ?? 0) : -1
+    const seaToday = seaInR.status === 'fulfilled' ? (seaInR.value?.total ?? 0) : -1
+    const landToday = landInR.status === 'fulfilled' ? (landInR.value?.total ?? 0) : -1
+    const zones = zonesR.status === 'fulfilled' ? (zonesR.data ?? []) : []
+    const pendingCount = pendingR.status === 'fulfilled' ? (pendingR.value?.total ?? 0) : -1
+    const ops = opsR.status === 'fulfilled' ? (opsR.value?.items ?? []) : []
+
+    if (results.some(r => r.status === 'rejected')) error.value = true
+
+    // 堆积利用率
+    const totalSlots = zones.reduce((s, z) => s + z.total_slots, 0)
+    const occupiedSlots = zones.reduce((s, z) => s + z.occupied_slots, 0)
+    const utilPct = totalSlots ? Math.round((occupiedSlots / totalSlots) * 1000) / 10 : 0
+
+    // 平均作业时长
+    const opsWithDuration = ops.filter(o => o.duration_minutes)
+    const avgMin = opsWithDuration.length
+      ? Math.round(opsWithDuration.reduce((s, o) => s + o.duration_minutes, 0) / opsWithDuration.length)
+      : 0
+
+    statCards[0].value = totalContainers >= 0 ? totalContainers.toLocaleString() : '--'
+    statCards[0].sub = '当前在场'
+    statCards[1].value = seaToday >= 0 ? String(seaToday) : '--'
+    statCards[1].sub = '海侧进出'
+    statCards[2].value = landToday >= 0 ? String(landToday) : '--'
+    statCards[2].sub = '陆侧进出'
+    statCards[3].value = `${utilPct}%`
+    statCards[3].sub = `${occupiedSlots}/${totalSlots} 箱位`
+    statCards[4].value = pendingCount >= 0 ? String(pendingCount) : '--'
+    statCards[4].sub = '待处理'
+    statCards[5].value = avgMin ? `${avgMin}min` : '--'
+    statCards[5].sub = opsWithDuration.length ? `${opsWithDuration.length} 条样本` : ''
+  } catch {
+    error.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+async function fetchTrendData() {
+  trendLoading.value = true
+  const hourlySea = new Array(24).fill(0)
+  const hourlyLand = new Array(24).fill(0)
+
+  try {
+    const { items } = await getOperationList({ page_size: 1000 })
+    for (const op of items || []) {
+      if (!op.created_at) continue
+      const hour = new Date(op.created_at).getHours()
+      if (op.source_operation === 'sea') hourlySea[hour]++
+      else hourlyLand[hour]++
+    }
+    buildTrendChart(hourlySea, hourlyLand)
+  } catch {
+    buildTrendChart(hourlySea, hourlyLand) // fallback with zeros
+  } finally {
+    trendLoading.value = false
+  }
+}
+
+async function fetchAlerts() {
+  alertsLoading.value = true
+  try {
+    const { data } = await api.get('/alerts', { params: { is_resolved: false, page_size: 5 } })
+    alerts.value = data?.items || []
+  } catch {
+    alerts.value = []
+  } finally {
+    alertsLoading.value = false
+  }
+}
+
+async function fetchYardData() {
+  yardLoading.value = true
+  try {
+    const [zonesRes, slotsRes] = await Promise.all([
+      api.get('/yard-zones'),
+      api.get('/yard-slots', { params: { page_size: 2000 } }),
+    ])
+    yardZones.value = zonesRes.data || []
+
+    const allSlots = slotsRes.data?.items || []
+    for (const z of yardZones.value) {
+      yardSlotMap[z.zone_id] = allSlots.filter(s => s.zone_id === z.zone_id)
+    }
+    await nextTick()
+    for (const z of yardZones.value) {
+      renderYardMap(z.zone_id)
+    }
+  } catch {
+    yardZones.value = []
+  } finally {
+    yardLoading.value = false
   }
 }
 
 onMounted(() => {
-  // Init trend chart
-  if (trendChart.value) {
-    new Chart(trendChart.value, {
-      type: 'line',
-      data: {
-        labels: ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00'],
-        datasets: [{
-          label: '海侧作业量', data: [12,8,25,45,38,42,35,20],
-          borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4,
-        }, {
-          label: '陆侧作业量', data: [5,3,15,35,55,48,30,15],
-          borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', fill: true, tension: 0.4,
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
-    })
-  }
-  // Generate yard maps
-  generateYardMap(yardA.value)
-  generateYardMap(yardB.value)
-  generateYardMap(yardC.value)
+  fetchDashboardData()
+  fetchTrendData()
+  fetchAlerts()
+  fetchYardData()
 })
 </script>

@@ -48,11 +48,14 @@ import { ref, reactive, onMounted } from 'vue'
 import { getLandOutboundList, createLandOutbound } from '../../api/landOutbound'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
 const list = ref([]); const loading = ref(true); const showModal = ref(false)
 const form = reactive({ container_id:'', container_type:'40GP', truck_plate:'', pickup_document_no:'', ship_id:'', process_status:'planned' })
 async function fetchData() { loading.value=true; try { const d=await getLandOutboundList({page_size:100}); list.value=d?.items||[] } finally { loading.value=false } }
 function openCreate() { Object.assign(form,{container_id:'',container_type:'40GP',truck_plate:'',pickup_document_no:'',ship_id:'',process_status:'planned'}); showModal.value=true }
-async function handleSave() { if(!form.container_id)return alert('请输入箱号'); try{await createLandOutbound({...form});showModal.value=false;alert('新增成功');fetchData()}catch(_){} }
+const appStore = useAppStore()
+
+async function handleSave() { if(!form.container_id)return appStore.showToast('请输入箱号', 'error'); try{await createLandOutbound({...form});showModal.value=false;appStore.showToast('新增成功', 'success');fetchData()}catch(_){} }
 onMounted(fetchData)
 </script>

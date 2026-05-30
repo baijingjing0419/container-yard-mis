@@ -2,7 +2,7 @@
   <div class="fade-in">
     <div class="page-title">陆侧进箱作业</div>
     <div class="page-subtitle">管理集卡通过闸口进入堆场全流程</div>
-    <div class="alert alert-info"><i class="fas fa-info-circle"></i><span>当前闸口状态：<strong>3</strong> 条通道开放，平均通行时间 <strong>4.5分钟</strong></span></div>
+    <div class="alert alert-info"><i class="fas fa-info-circle"></i><span>当前闸口状态：<strong>{{ gateStats.openLanes }}</strong> 条通道开放，平均通行时间 <strong>{{ gateStats.avgTime }}分钟</strong></span></div>
     <div class="flow-diagram">
       <div class="flow-node">送箱/提箱申请</div><div class="flow-arrow"><i class="fas fa-chevron-right"></i></div>
       <div class="flow-node active">闸口单证核验</div><div class="flow-arrow"><i class="fas fa-chevron-right"></i></div>
@@ -59,15 +59,21 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { getLandInboundList, createLandInbound } from '../../api/landInbound'
+import api from '../../api/request'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
 const list = ref([]); const loading = ref(true); const showModal = ref(false)
+const gateStats = reactive({ openLanes: '--', avgTime: '--' })
 const form = reactive({ container_id:'', container_type:'40HQ', truck_plate:'', driver_name:'', document_no:'', ship_id:'', process_status:'pending' })
 function statusClass(s) { return { pending:'pending', gate_checking:'processing', landed:'completed', completed:'completed' }[s] || 'pending' }
 function statusText(s) { return { pending:'待处理', gate_checking:'核验中', landed:'已落箱', completed:'已完成' }[s] || s }
 async function fetchData() { loading.value=true; try { const d=await getLandInboundList({page_size:100}); list.value=d?.items||[] } finally { loading.value=false } }
 function openCreate() { Object.assign(form,{container_id:'',container_type:'40HQ',truck_plate:'',driver_name:'',document_no:'',ship_id:'',process_status:'pending'}); showModal.value=true }
-async function handleSave() { if(!form.container_id)return alert('请输入箱号'); try{await createLandInbound({...form});showModal.value=false;alert('新增成功');fetchData()}catch(_){} }
-onMounted(fetchData)
+const appStore = useAppStore()
+
+async function handleSave() { if(!form.container_id)return appStore.showToast('请输入箱号', 'error'); try{await createLandInbound({...form});showModal.value=false;appStore.showToast('新增成功', 'success');fetchData()}catch(_){} }
+async function fetchGateStats() { try { const { data } = await api.get('/gate-records', { params: { io_type: 'inbound', page_size: 100 } }); const items = data?.items||[]; gateStats.openLanes = '3'; const withDur = items.filter(i=>i.pass_duration); gateStats.avgTime = withDur.length ? (withDur.reduce((s,i)=>s+i.pass_duration,0)/withDur.length).toFixed(1) : '--' } catch { gateStats.openLanes='--'; gateStats.avgTime='--' } }
+onMounted(() => { fetchData(); fetchGateStats() })
 </script>

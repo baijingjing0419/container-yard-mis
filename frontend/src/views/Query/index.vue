@@ -67,7 +67,9 @@ import { ref } from 'vue'
 import { useVirtualList } from '@vueuse/core'
 import { getInventoryList } from '../../api/yardInventory'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
+const appStore = useAppStore()
 const searchType = ref('container_id')
 const searchKeyword = ref('')
 const results = ref([])
@@ -78,7 +80,7 @@ const { list: virtualResults, containerProps, wrapperProps } = useVirtualList(re
 
 async function doSearch() {
   if (!searchKeyword.value.trim()) {
-    alert('请输入查询内容')
+    appStore.showToast('请输入查询内容', 'error')
     return
   }
   const keyword = searchKeyword.value.trim()

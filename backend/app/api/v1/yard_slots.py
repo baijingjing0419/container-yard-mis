@@ -14,7 +14,7 @@ router = APIRouter(prefix="/yard-slots", tags=["堆场箱位管理"])
 @router.get("", response_model=PaginatedResponse[SlotResponse], summary="获取箱位列表")
 async def list_slots(
     page: int = Query(default=1, ge=1, description="页码"),
-    page_size: int = Query(default=100, ge=1, le=500, description="每页数量"),
+    page_size: int = Query(default=100, ge=1, le=2000, description="每页数量"),
     zone_id: str | None = Query(None, description="按区域过滤，如 A/B/C"),
     slot_status: str | None = Query(None, description="按状态过滤"),
     db: AsyncSession = Depends(get_db),

@@ -119,7 +119,9 @@ import { useVirtualList } from '@vueuse/core'
 import { getDispatchOrderList, createDispatchOrder } from '../../api/dispatchOrder'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
+const appStore = useAppStore()
 const list = ref([])
 const loading = ref(true)
 const showModal = ref(false)
@@ -162,10 +164,9 @@ async function fetchData() {
 }
 
 function openCreateDialog() {
-  // 自动生成指令号
   const now = new Date()
-  form.order_id = 'DI-' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-' + String(Math.floor(Math.random()*1000)).padStart(3,'0')
-  form.issue_time = new Date().toISOString()
+  form.order_id = 'DI-' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-' + String(now.getSeconds()).padStart(2,'0') + String(now.getMilliseconds()).padStart(3,'0')
+  form.issue_time = now.toISOString()
   // 重置其他字段
   form.order_type = 'sea_inbound'
   form.execute_dept = '岸桥班组'
@@ -178,7 +179,7 @@ function openCreateDialog() {
 }
 
 async function handleSave() {
-  if (!form.target_position) return alert('请输入目标位置')
+  if (!form.target_position) return appStore.showToast('请输入目标位置', 'error')
   try {
     const payload = {
       order_id: form.order_id,
@@ -194,7 +195,7 @@ async function handleSave() {
     }
     await createDispatchOrder(payload)
     showModal.value = false
-    alert('下发成功！指令号: ' + form.order_id)
+    appStore.showToast('下发成功', 'success')
     fetchData()
   } catch (_) { /* handled by interceptor */ }
 }

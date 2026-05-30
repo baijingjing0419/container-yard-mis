@@ -16,3 +16,5 @@ services:
     volumes:
       - ./frontend/src:/app/src
       - /app/node_modules
+    environment:
+      VITE_API_TARGET: "http://backend:8000"

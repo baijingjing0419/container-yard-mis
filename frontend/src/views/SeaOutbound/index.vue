@@ -3,9 +3,13 @@
     <div class="page-title">海侧出场作业</div>
     <div class="page-subtitle">管理海运出口集装箱装船出场全流程</div>
 
-    <div class="alert alert-success">
+    <div class="alert alert-success" v-if="activePlan">
       <i class="fas fa-check-circle"></i>
-      <span>当前作业：航次 <strong>MAERSK-8821</strong> 正在装船，已完成 78/120 箱</span>
+      <span>当前作业：航次 <strong>{{ activePlan.voyage_no }}</strong> ({{ activePlan.ship_id }}) 正在装船</span>
+    </div>
+    <div class="alert alert-success" v-else>
+      <i class="fas fa-check-circle"></i>
+      <span>当前无进行中的海侧出场计划</span>
     </div>
 
     <div class="flow-diagram">
@@ -66,15 +70,21 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { getSeaOutboundList, createSeaOutbound } from '../../api/seaOutbound'
+import api from '../../api/request'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
+import { useAppStore } from '../../store/app'
 
 const list = ref([]); const loading = ref(true); const showModal = ref(false)
+const activePlan = ref(null)
 const form = reactive({ container_id:'', container_type:'40HQ', ship_id:'', voyage_no:'', stowage_position:'', original_slot_id:'', customs_status:'cleared', process_status:'planned' })
 function statusClass(s) { return { planned:'pending', picking:'processing', transiting:'processing', loaded:'completed', completed:'completed' }[s] || 'pending' }
 function statusText(s) { return { planned:'已计划', picking:'提箱中', transiting:'转运中', loaded:'已装船', completed:'已完成' }[s] || s }
 async function fetchData() { loading.value=true; try { const d=await getSeaOutboundList({page_size:100}); list.value=d?.items||[] } finally { loading.value=false } }
 function openCreate() { Object.assign(form,{container_id:'',container_type:'40HQ',ship_id:'',voyage_no:'',stowage_position:'',original_slot_id:'',customs_status:'cleared',process_status:'planned'}); showModal.value=true }
-async function handleSave() { if(!form.container_id)return alert('请输入箱号'); if(!form.ship_id)return alert('请输入船名航次'); if(!form.voyage_no)return alert('请输入航次号'); try{await createSeaOutbound({...form});showModal.value=false;alert('新增成功');fetchData()}catch(_){} }
-onMounted(fetchData)
+const appStore = useAppStore()
+
+async function handleSave() { if(!form.container_id)return appStore.showToast('请输入箱号', 'error'); if(!form.ship_id)return appStore.showToast('请输入船名航次', 'error'); if(!form.voyage_no)return appStore.showToast('请输入航次号', 'error'); try{await createSeaOutbound({...form});showModal.value=false;appStore.showToast('新增成功', 'success');fetchData()}catch(_){} }
+async function fetchActivePlan() { try { const { data } = await api.get('/sea-plans', { params: { plan_type: 'loading', plan_status: 'in_progress', page_size: 1 } }); activePlan.value = data?.items?.[0] || null } catch { activePlan.value = null } }
+onMounted(() => { fetchData(); fetchActivePlan() })
 </script>
