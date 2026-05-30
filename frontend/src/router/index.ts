@@ -27,7 +27,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'query', name: 'Query', component: () => import('../views/Query/index.vue'), meta: { title: '箱量/状态查询', roles: ['admin', 'dispatcher', 'gate_clerk', 'qc_op', 'yc_op'] } },
       { path: 'statistics', name: 'Statistics', component: () => import('../views/Statistics/index.vue'), meta: { title: '作业效率统计', roles: ['admin', 'dispatcher'] } },
       { path: 'reports', name: 'Reports', component: () => import('../views/Reports/index.vue'), meta: { title: '报表中心', roles: ['admin'] } },
-      { path: 'import', name: 'Import', component: () => import('../views/Import/index.vue'), meta: { title: '数据导入', roles: ['admin'] } },
+
     ],
   },
 ]
