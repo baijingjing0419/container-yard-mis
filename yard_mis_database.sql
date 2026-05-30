@@ -1,3 +1,5 @@
+SET NAMES utf8mb4;
+
 -- ========================================================
 -- 集装箱码头堆场管理信息MIS系统 - 数据库设计
 -- Container Terminal Yard Management System Database
