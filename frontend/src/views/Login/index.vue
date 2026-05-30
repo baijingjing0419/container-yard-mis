@@ -12,13 +12,18 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">选择登录账号</label>
-        <select v-model="selectedUser" class="form-input" style="font-size:14px;">
+        <label class="form-label">登录账号</label>
+        <select v-model="loginForm.username" class="form-input" style="font-size:14px;">
           <option value="">-- 请选择账号 --</option>
           <option v-for="u in presetUsers" :key="u.username" :value="u.username">
             {{ u.label }}
           </option>
         </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">登录密码</label>
+        <input v-model="loginForm.password" type="password" class="form-input" style="font-size:14px;" placeholder="请输入密码" @keyup.enter="handleLogin" />
       </div>
 
       <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;justify-content:center;" @click="handleLogin" :disabled="loading">
@@ -27,7 +32,7 @@
       </button>
 
       <p style="text-align:center;color:#94a3b8;font-size:12px;margin-top:20px;">
-        预置账号，点击登录（已接入 JWT 认证）
+        预置账号，初始密码 123456
       </p>
     </div>
   </div>
@@ -52,19 +57,23 @@ const presetUsers = [
   { username: 'admin',      label: '系统管理员 (信息中心)' },
 ]
 
-const selectedUser = ref('')
+const loginForm = ref({ username: '', password: '' })
 const loading = ref(false)
 const error = ref('')
 
 async function handleLogin() {
-  if (!selectedUser.value) {
+  if (!loginForm.value.username) {
     error.value = '请选择登录账号'
+    return
+  }
+  if (!loginForm.value.password) {
+    error.value = '请输入密码'
     return
   }
   loading.value = true
   error.value = ''
   try {
-    const { data } = await api.post('/auth/login', { username: selectedUser.value })
+    const { data } = await api.post('/auth/login', loginForm.value)
     userStore.login({
       username: data.username,
       realName: data.real_name || data.username,
