@@ -16,6 +16,8 @@ from app.models.land_operation_plans import LandOperationPlan
 from app.models.users import User
 from app.models.system_logs import SystemLog
 from app.models.alerts import Alert
+from app.models.containers_master import ContainerMaster
+from app.models.container_move_logs import ContainerMoveLog
 from app.core.database import Base
 
 __all__ = [
@@ -25,4 +27,5 @@ __all__ = [
     "YardContainerInventory", "YardOperationRecord", "DispatchOrder",
     "SeaOperationPlan", "LandOperationPlan",
     "User", "SystemLog", "Alert",
+    "ContainerMaster", "ContainerMoveLog",
 ]
