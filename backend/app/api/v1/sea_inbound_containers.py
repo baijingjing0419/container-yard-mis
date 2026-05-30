@@ -1,4 +1,4 @@
-"""海侧进箱管理 API - 提供进箱记录 CRUD 及状态变更"""
+"""海侧进箱管理 API - 含主数据优先校验与级联插入"""
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,11 +7,10 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.models.sea_inbound_containers import SeaInboundContainer
+from app.models.containers_master import ContainerMaster
+from app.models.yard_container_inventory import YardContainerInventory
 from app.schemas.sea_inbound_containers import (
-    SeaInboundCreate,
-    SeaInboundUpdate,
-    SeaInboundStatusUpdate,
-    SeaInboundResponse,
+    SeaInboundCreate, SeaInboundUpdate, SeaInboundStatusUpdate, SeaInboundResponse,
 )
 from app.schemas.common import PaginatedResponse
 
@@ -19,19 +18,20 @@ router = APIRouter(prefix="/sea-inbounds", tags=["海侧进箱管理"])
 
 
 def _build_response(container: SeaInboundContainer) -> SeaInboundResponse:
-    """将 ORM 对象转为响应体，展开 ship_name 和 slot 位置标签"""
+    """将 ORM 对象转为响应体，展开关联数据"""
     data = SeaInboundResponse.model_validate(container).model_dump()
-
-    # 展开关联的船舶名称
+    if container.container_master:
+        data["container_type"] = container.container_master.container_type
     if container.ship:
         data["ship_name"] = container.ship.ship_name
-
-    # 展开关联的目标/实际堆位标签
     if container.target_slot:
-        data["target_slot_label"] = f"{container.target_slot.zone_id}区-{container.target_slot.row_num}排-{container.target_slot.col_num}位"
+        data["target_slot_label"] = (
+            f"{container.target_slot.zone_id}区-{container.target_slot.row_num}排-{container.target_slot.col_num}位"
+        )
     if container.actual_slot:
-        data["actual_slot_label"] = f"{container.actual_slot.zone_id}区-{container.actual_slot.row_num}排-{container.actual_slot.col_num}位"
-
+        data["actual_slot_label"] = (
+            f"{container.actual_slot.zone_id}区-{container.actual_slot.row_num}排-{container.actual_slot.col_num}位"
+        )
     return SeaInboundResponse(**data)
 
 
@@ -104,18 +104,50 @@ async def get_sea_inbound(container_id: str, db: AsyncSession = Depends(get_db))
 
 @router.post("", response_model=SeaInboundResponse, status_code=201, summary="新增海侧进箱记录")
 async def create_sea_inbound(data: SeaInboundCreate, db: AsyncSession = Depends(get_db)):
-    """创建一条新的海侧进箱记录（模拟卸船预录入）"""
+    """创建海侧进箱记录 — 主数据优先：若 containers_master 不存在则先行 INSERT"""
+    # 检查业务表是否已存在
     existing = await db.get(SeaInboundContainer, data.container_id)
     if existing:
         raise HTTPException(status_code=409, detail=f"箱号 {data.container_id} 已存在")
 
     try:
-        container = SeaInboundContainer(**data.model_dump())
+        # (1) Master Data First: 确保主数据表存在该箱号
+        master = await db.get(ContainerMaster, data.container_id)
+        if not master:
+            master = ContainerMaster(
+                container_id=data.container_id,
+                container_type=data.container_type,
+            )
+            db.add(master)
+            await db.flush()
+
+        # (2) 插入海侧进箱记录（排除 container_type，该字段已迁移至主表）
+        inbound_data = data.model_dump(exclude={"container_type"})
+        container = SeaInboundContainer(**inbound_data)
         db.add(container)
+        await db.flush()
+
+        # (3) 级联写入台账 (D7)
+        existing_inv = await db.get(YardContainerInventory, data.container_id)  # PK is inventory_id, use query
+        inv_exists = (await db.execute(
+            select(YardContainerInventory).where(YardContainerInventory.container_id == data.container_id)
+        )).scalar_one_or_none()
+        if not inv_exists:
+            inv = YardContainerInventory(
+                container_id=data.container_id,
+                container_status="in_yard",
+                current_slot_id=data.actual_slot_id or data.target_slot_id,
+                ship_id=data.ship_id,
+                voyage_no=data.voyage_no,
+                source_type="sea_inbound",
+                source_record_id=data.container_id,
+            )
+            db.add(inv)
+
         await db.flush()
         await db.refresh(container)
 
-        # 重新带关联查询返回
+        # (4) 返回含关联查询的响应
         query = (
             select(SeaInboundContainer)
             .options(
@@ -126,8 +158,7 @@ async def create_sea_inbound(data: SeaInboundCreate, db: AsyncSession = Depends(
             .where(SeaInboundContainer.container_id == container.container_id)
         )
         result = await db.execute(query)
-        container = result.scalar_one()
-        return _build_response(container)
+        return _build_response(result.scalar_one())
 
     except SQLAlchemyError as e:
         await db.rollback()

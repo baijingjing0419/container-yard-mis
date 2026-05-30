@@ -1,4 +1,4 @@
-"""堆场作业记录 API - 作业执行记录与状态管理（含联动更新台账和箱位）"""
+"""堆场作业记录 API - 含乐观锁预占 + 轨迹流水同步写入"""
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, update
@@ -10,12 +10,13 @@ from app.core.database import get_db
 from app.models.yard_operation_records import YardOperationRecord
 from app.models.yard_container_inventory import YardContainerInventory
 from app.models.yard_slots import YardSlot
+from app.models.container_move_logs import ContainerMoveLog
 from app.schemas.yard_operation_records import (
-    OperationCreate,
-    OperationStatusUpdate,
-    OperationResponse,
+    OperationCreate, OperationStatusUpdate, OperationResponse,
 )
 from app.schemas.common import PaginatedResponse
+
+OPTIMISTIC_LOCK_MAX_RETRIES = 3
 
 router = APIRouter(prefix="/yard-operations", tags=["堆场作业记录"])
 
@@ -177,9 +178,7 @@ async def create_operation(data: OperationCreate, db: AsyncSession = Depends(get
 async def update_operation_status(
     record_id: str, data: OperationStatusUpdate, db: AsyncSession = Depends(get_db)
 ):
-    """专用接口：更新作业执行状态。
-    当状态变为 completed 时，自动填入 end_time 并计算 duration_minutes。
-    """
+    """更新作业状态。completed 时：乐观锁预占箱位 + 写入移动流水 + 联动台账。"""
     op = await db.get(YardOperationRecord, record_id)
     if not op:
         raise HTTPException(status_code=404, detail=f"作业记录 {record_id} 不存在")
@@ -187,14 +186,13 @@ async def update_operation_status(
     try:
         op.operation_status = data.operation_status
 
-        # 完成时自动记录结束时间和作业时长
         if data.operation_status == "completed":
             if not op.end_time:
                 op.end_time = datetime.now()
             if op.start_time and op.end_time:
                 op.duration_minutes = int((op.end_time - op.start_time).total_seconds() / 60)
 
-            # 联动更新：完成时也执行箱位和台账变更
+            # (1) 释放原箱位
             if op.original_slot_id:
                 await db.execute(
                     update(YardSlot)
@@ -202,14 +200,51 @@ async def update_operation_status(
                     .values(slot_status="empty", current_container_id=None)
                 )
 
+            # (2) 乐观锁预占目标箱位
             if op.target_slot_id:
-                await db.execute(
-                    update(YardSlot)
-                    .where(YardSlot.slot_id == op.target_slot_id)
-                    .values(slot_status="occupied", current_container_id=op.container_id)
-                )
+                slot = await db.get(YardSlot, op.target_slot_id)
+                if slot and slot.slot_id:
+                    success = False
+                    for attempt in range(1, OPTIMISTIC_LOCK_MAX_RETRIES + 1):
+                        result = await db.execute(
+                            update(YardSlot)
+                            .where(
+                                YardSlot.slot_id == op.target_slot_id,
+                                YardSlot.version == slot.version,
+                            )
+                            .values(
+                                slot_status="occupied",
+                                current_container_id=op.container_id,
+                                version=slot.version + 1,
+                            )
+                        )
+                        await db.flush()
+                        if result.rowcount > 0:
+                            success = True
+                            break
+                        # 版本号已变，重新查询后重试
+                        await db.refresh(slot)
 
+                    if not success:
+                        raise HTTPException(
+                            status_code=409,
+                            detail=f"箱位 {op.target_slot_id} 已被抢占，请重试",
+                        )
+
+            # (3) 轨迹流水同步写入
             if op.container_id:
+                move_log = ContainerMoveLog(
+                    container_id=op.container_id,
+                    from_slot_id=op.original_slot_id,
+                    to_slot_id=op.target_slot_id,
+                    move_time=datetime.now(),
+                    operator_name=op.operator_name,
+                    operation_id=op.record_id,
+                    equipment_id=op.equipment_id,
+                )
+                db.add(move_log)
+
+                # 联动台账更新
                 inv_query = select(YardContainerInventory).where(
                     YardContainerInventory.container_id == op.container_id
                 )
@@ -234,6 +269,9 @@ async def update_operation_status(
         result = await db.execute(query)
         return _build_response(result.scalar_one())
 
+    except HTTPException:
+        await db.rollback()
+        raise
     except SQLAlchemyError as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"状态更新失败: {str(e)}")

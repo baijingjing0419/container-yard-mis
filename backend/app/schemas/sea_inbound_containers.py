@@ -4,9 +4,9 @@ from pydantic import BaseModel, Field
 
 
 class SeaInboundCreate(BaseModel):
-    """新增海侧进箱记录请求体"""
+    """新增海侧进箱记录请求体（container_type 已迁移至 containers_master）"""
     container_id: str = Field(..., max_length=20, description="箱号")
-    container_type: str = Field(..., max_length=10, description="箱型: 20GP/40GP/40HQ/45HQ")
+    container_type: str = Field(..., max_length=10, description="箱型（用于主数据自动创建）")
     container_status: str = Field(default="intact", max_length=20, description="箱状态")
     ship_id: str = Field(..., max_length=20, description="船名航次")
     voyage_no: str = Field(..., max_length=20, description="航次号")
@@ -50,7 +50,7 @@ class SeaInboundStatusUpdate(BaseModel):
 class SeaInboundResponse(BaseModel):
     """海侧进箱记录响应体 - 含关联数据展开"""
     container_id: str
-    container_type: str
+    container_type: str | None = None
     container_status: str | None = None
     ship_id: str
     voyage_no: str
