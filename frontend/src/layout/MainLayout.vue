@@ -9,7 +9,7 @@
       <div v-if="showOverviewSection" class="nav-section-title">总览</div>
       <router-link v-if="hasPermission('/dashboard')" to="/dashboard" class="nav-item">
         <i class="fas fa-chart-line"></i>
-        <span>运营总览 Dashboard</span>
+        <span>运营总览</span>
       </router-link>
 
       <div v-if="showSeaSection" class="nav-section-title">海侧作业管理</div>

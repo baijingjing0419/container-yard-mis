@@ -104,6 +104,13 @@ const SOURCE_LABELS = {
 }
 function sourceLabel(k) { return SOURCE_LABELS[k] || k }
 
+function equipLabel(eq) {
+  if (!eq) return '未知'
+  const prefix = eq.substring(0, 2)
+  const m = { YC: '场桥', QC: '岸桥', IT: '内集卡', RT: '轮胎吊' }
+  return (m[prefix] || prefix) + eq.substring(2)
+}
+
 function buildCharts(items) {
   const deptMap = {}
   const equipMap = {}
@@ -112,9 +119,9 @@ function buildCharts(items) {
     const dept = sourceLabel(op.execute_dept || op.source_operation || '其他')
     deptMap[dept] = (deptMap[dept] || 0) + 1
     const equip = op.equipment_id
-    if (equip) equipMap[equip] = (equipMap[equip] || 0) + 1
-    if (op.created_at) {
-      const m = op.created_at.substring(0, 7)
+    if (equip) { const eq = equipLabel(equip); equipMap[eq] = (equipMap[eq] || 0) + 1 }
+    if (op.start_time) {
+      const m = op.start_time.substring(0, 7)
       monthMap[m] = (monthMap[m] || 0) + 1
     }
   }
