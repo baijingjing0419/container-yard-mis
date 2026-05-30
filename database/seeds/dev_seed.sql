@@ -407,16 +407,16 @@ INSERT INTO land_inbound_containers (container_id, container_type, container_sta
 
 -- 6. 陆侧出场 (10箱提箱中)
 INSERT INTO land_outbound_containers (container_id, container_type, container_status, truck_plate, driver_name, pickup_document_no, original_slot_id, process_status) VALUES
-('MAEU7000001','40GP','ready','HUA4266','提箱司机1','DOC-L01','A-13-01','picking'),
-('CMAU7000002','20GP','ready','HUA9271','提箱司机2','DOC-L02','A-02-04','picking'),
-('MAEU7000003','40HQ','ready','HUA6522','提箱司机3','DOC-L03','A-04-06','picking'),
-('ZIMU7000004','40GP','ready','HUA7550','提箱司机4','DOC-L04','A-07-04','picking'),
-('ZIMU7000005','40GP','ready','HUA5569','提箱司机5','DOC-L05','A-02-02','picking'),
-('HLBU7000006','40GP','ready','HUA3767','提箱司机6','DOC-L06','A-13-04','picking'),
-('COSU7000007','40GP','ready','HUA8669','提箱司机7','DOC-L07','A-05-02','picking'),
-('ONEE7000008','40HQ','ready','HUA2514','提箱司机8','DOC-L08','A-10-06','picking'),
-('HLBU7000009','20GP','ready','HUA1310','提箱司机9','DOC-L09','A-04-01','picking'),
-('YMLU7000010','40GP','ready','HUA6641','提箱司机10','DOC-L10','A-12-06','picking');
+('MAEU7000001','40GP','released','HUA4266','提箱司机1','DOC-L01','A-13-01','released'),
+('CMAU7000002','20GP','released','HUA9271','提箱司机2','DOC-L02','A-02-04','released'),
+('MAEU7000003','40HQ','released','HUA6522','提箱司机3','DOC-L03','A-04-06','released'),
+('ZIMU7000004','40GP','transiting','HUA7550','提箱司机4','DOC-L04','A-07-04','transiting'),
+('ZIMU7000005','40GP','transiting','HUA5569','提箱司机5','DOC-L05','A-02-02','transiting'),
+('HLBU7000006','40GP','picking','HUA3767','提箱司机6','DOC-L06','A-13-04','picking'),
+('COSU7000007','40GP','picking','HUA8669','提箱司机7','DOC-L07','A-05-02','picking'),
+('ONEE7000008','40HQ','picking','HUA2514','提箱司机8','DOC-L08','A-10-06','picking'),
+('HLBU7000009','20GP','planned','HUA1310','提箱司机9','DOC-L09','A-04-01','planned'),
+('YMLU7000010','40GP','planned','HUA6641','提箱司机10','DOC-L10','A-12-06','planned');
 
 -- 6b. 海侧出场 (30箱装船出场)
 INSERT INTO sea_outbound_containers (container_id, container_type, container_status, ship_id, voyage_no, stowage_position, exit_time, original_slot_id, load_complete_time, document_info, customs_status, operation_id, plan_id, yard_crane, transfer_truck, load_crane, process_status) VALUES
@@ -1093,5 +1093,8 @@ UPDATE yard_slots SET slot_status='occupied', current_container_id='CMAU7000197'
 UPDATE yard_slots SET slot_status='occupied', current_container_id='HMMU7000198' WHERE slot_id='C-09-03';
 UPDATE yard_slots SET slot_status='occupied', current_container_id='YMLU7000199' WHERE slot_id='C-02-05';
 UPDATE yard_slots SET slot_status='occupied', current_container_id='ONEE7000200' WHERE slot_id='C-07-04';
+
+-- 补闸口通行时长（前20条有离场时间）
+UPDATE gate_io_records SET exit_time=DATE_ADD(entry_time, INTERVAL FLOOR(10+RAND()*20) MINUTE), pass_duration=FLOOR(10+RAND()*20) WHERE record_id IN ('GATE-20260530-001','GATE-20260530-002','GATE-20260530-003','GATE-20260530-004','GATE-20260530-005','GATE-20260530-006','GATE-20260530-007','GATE-20260530-008','GATE-20260530-009','GATE-20260530-010','GATE-20260530-011','GATE-20260530-012','GATE-20260530-013','GATE-20260530-014','GATE-20260530-015','GATE-20260530-016','GATE-20260530-017','GATE-20260530-018','GATE-20260530-019','GATE-20260530-020');
 
 SET FOREIGN_KEY_CHECKS = 1;

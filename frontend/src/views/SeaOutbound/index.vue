@@ -84,6 +84,6 @@ function openCreate() { Object.assign(form,{container_id:'',container_type:'40HQ
 const appStore = useAppStore()
 
 async function handleSave() { if(!form.container_id)return appStore.showToast('请输入箱号', 'error'); if(!form.ship_id)return appStore.showToast('请输入船名航次', 'error'); if(!form.voyage_no)return appStore.showToast('请输入航次号', 'error'); try{await createSeaOutbound({...form});showModal.value=false;appStore.showToast('新增成功', 'success');fetchData()}catch(_){} }
-async function fetchActivePlan() { try { const { data } = await api.get('/sea-plans', { params: { plan_type: 'loading', plan_status: 'in_progress', page_size: 1 } }); activePlan.value = data?.items?.[0] || null } catch { activePlan.value = null } }
+async function fetchActivePlan() { try { const { data } = await api.get('/sea-plans', { params: { plan_type: 'load', plan_status: 'executing', page_size: 1 } }); activePlan.value = data?.items?.[0] || null } catch { activePlan.value = null } }
 onMounted(() => { fetchData(); fetchActivePlan() })
 </script>

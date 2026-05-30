@@ -168,7 +168,7 @@ async function handleSave() {
 
 async function fetchActivePlan() {
   try {
-    const { data } = await api.get('/sea-plans', { params: { plan_status: 'in_progress', page_size: 1 } })
+    const { data } = await api.get('/sea-plans', { params: { plan_status: 'executing', page_size: 1 } })
     activePlan.value = data?.items?.[0] || null
   } catch { activePlan.value = null }
 }
