@@ -1,0 +1,5 @@
+工号,用户名,姓名,角色,部门,电话,邮箱,状态
+6,zhangwei,张伟,dispatcher,调度中心,13800000006,zhangwei@yard.local,active
+7,wangfang,王芳,gate_clerk,闸口管理,13800000007,wangfang@yard.local,active
+8,zhaoan,赵岸,qc_op,岸桥班组,13800000008,zhaoan@yard.local,active
+9,qianchang,钱场,yc_op,场桥班组,13800000009,qianchang@yard.local,active

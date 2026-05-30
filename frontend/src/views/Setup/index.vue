@@ -34,16 +34,13 @@
       <!-- Step 2: 堆场检测 -->
       <div v-if="step === 2">
         <div class="step-title"><i class="fas fa-warehouse"></i> 堆场布局配置</div>
-        <p class="step-desc">堆场区域和箱位是系统运行的基础数据，需通过 SQL 脚本导入。</p>
+        <p class="step-desc">堆场区域和箱位由 schema.sql 自动初始化，无需手动导入。</p>
 
-        <div v-if="!yardOk" class="alert alert-warning" style="margin-bottom:16px;">
-          <i class="fas fa-exclamation-triangle"></i> 堆场数据尚未配置，请在数据库服务器上执行以下命令：
-          <div style="background:#1e293b;color:#e2e8f0;padding:10px 14px;border-radius:6px;margin-top:10px;font-family:monospace;font-size:13px;">
-            docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB &lt; database/seeds/yard_setup.sql
-          </div>
+        <div v-if="yardOk" class="alert alert-success">
+          <i class="fas fa-check-circle"></i> 堆场布局已就绪（{{ zoneCount }} 个区域）
         </div>
-        <div v-else class="alert alert-success">
-          <i class="fas fa-check-circle"></i> 堆场布局已配置（{{ zoneCount }} 个区域）
+        <div v-else class="alert alert-warning" style="margin-bottom:16px;">
+          <i class="fas fa-exclamation-triangle"></i> 堆场数据未检测到，请重建容器以触发 schema.sql 初始化。
         </div>
 
         <div style="display:flex;gap:12px;margin-top:16px;">
@@ -51,7 +48,7 @@
             <i class="fas fa-sync-alt"></i> 重新检测
           </button>
           <button class="btn btn-primary" style="flex:1;padding:12px;justify-content:center;" @click="finishSetup">
-            <i class="fas fa-check"></i> {{ yardOk ? '进入系统' : '跳过，以后配置' }}
+            <i class="fas fa-check"></i> 进入系统
           </button>
         </div>
       </div>
@@ -77,7 +74,13 @@ const zoneCount = ref(0)
 const form = ref({ user_id: '', real_name: '', password: '' })
 
 onMounted(async () => {
-  try { const r = await api.get('/system/status'); yardOk.value = r.data.yard_configured; zoneCount.value = r.data.yard_configured ? 3 : 0 } catch {}
+  try {
+    const r = await api.get('/system/status')
+    if (!r.data.setup_required) { router.replace('/dashboard'); return }
+    yardOk.value = r.data.yard_configured
+    if (!r.data.admin_exists) step.value = 1
+    else step.value = 2
+  } catch {}
 })
 
 async function createAdmin() {
@@ -109,7 +112,8 @@ async function checkYard() {
 }
 
 function finishSetup() {
-  router.replace(getDefaultRoute(userStore.role))
+  const path = getDefaultRoute(userStore.role || 'admin')
+  router.replace(path).catch(() => router.push('/dashboard'))
 }
 </script>
 

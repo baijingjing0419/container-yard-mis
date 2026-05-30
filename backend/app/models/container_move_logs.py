@@ -1,7 +1,7 @@
-"""箱位移动流水表 ORM 模型 — 每一次位置变更均记录，支持完整轨迹追溯"""
+"""箱位移动流水表 ORM 模型 — 分区表不支持 DB 级 FK，使用 primaryjoin"""
 from datetime import datetime
-from sqlalchemy import String, Integer, DateTime, ForeignKey, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, Integer, DateTime, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship, foreign
 
 from app.core.database import Base
 
@@ -13,13 +13,13 @@ class ContainerMoveLog(Base):
         Integer, primary_key=True, autoincrement=True, comment="日志ID"
     )
     container_id: Mapped[str] = mapped_column(
-        String(20), ForeignKey("containers_master.container_id"), nullable=False, comment="箱号"
+        String(20), nullable=False, comment="箱号"
     )
     from_slot_id: Mapped[str | None] = mapped_column(
-        String(20), ForeignKey("yard_slots.slot_id"), comment="原位置"
+        String(20), comment="原位置"
     )
     to_slot_id: Mapped[str] = mapped_column(
-        String(20), ForeignKey("yard_slots.slot_id"), nullable=False, comment="新位置"
+        String(20), nullable=False, comment="新位置"
     )
     move_time: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp(), comment="移动时间"
@@ -40,10 +40,18 @@ class ContainerMoveLog(Base):
         DateTime, server_default=func.current_timestamp()
     )
 
-    container: Mapped["ContainerMaster"] = relationship("ContainerMaster", lazy="selectin")
+    container: Mapped["ContainerMaster"] = relationship(
+        "ContainerMaster",
+        primaryjoin="foreign(ContainerMoveLog.container_id) == ContainerMaster.container_id",
+        lazy="selectin",
+    )
     from_slot: Mapped["YardSlot | None"] = relationship(
-        "YardSlot", foreign_keys=[from_slot_id], lazy="selectin"
+        "YardSlot",
+        primaryjoin="foreign(ContainerMoveLog.from_slot_id) == YardSlot.slot_id",
+        lazy="selectin",
     )
     to_slot: Mapped["YardSlot"] = relationship(
-        "YardSlot", foreign_keys=[to_slot_id], lazy="selectin"
+        "YardSlot",
+        primaryjoin="foreign(ContainerMoveLog.to_slot_id) == YardSlot.slot_id",
+        lazy="selectin",
     )

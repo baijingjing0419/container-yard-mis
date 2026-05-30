@@ -68,12 +68,27 @@
         </div>
         <div class="card-body">
           <div v-if="yardLoading" style="text-align:center;padding:40px;color:#94a3b8;">加载中...</div>
-          <div v-else style="display: flex; gap: 20px;">
+          <div v-else style="display: flex; gap: 8px;">
             <div style="flex: 1;" v-for="zone in yardZones" :key="zone.zone_id">
-              <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #1e40af;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:6px;color:#1e40af;">
                 {{ zone.zone_name || (zone.zone_id + '区') }}
+                <span style="font-weight:400;color:#94a3b8;font-size:11px;">
+                  占用{{ zone.occupied_slots }}/{{ zone.total_slots }}
+                </span>
               </div>
-              <div class="yard-map" :ref="el => setYardRef(zone.zone_id, el)"></div>
+              <div class="yard-map">
+                <template v-if="yardGrid[zone.zone_id]">
+                  <div v-for="(row, ri) in yardGrid[zone.zone_id].rows" :key="ri"
+                    style="display:flex;gap:1px;margin-bottom:1px;">
+                    <div v-for="(cell, ci) in row" :key="ci"
+                      :title="cell ? cell.slot_id + ' | ' + statusLabel(cell.slot_status) : ''"
+                      @click="cell && appStore.showToast(cell.slot_id + ' | ' + statusLabel(cell.slot_status), 'info')"
+                      :style="{ width:'12px', height:'12px', flexShrink:0,
+                        background: cell ? statusColor(cell.slot_status) : '#fff' }">
+                    </div>
+                  </div>
+                </template>
+              </div>
             </div>
           </div>
         </div>
@@ -82,7 +97,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import Chart from 'chart.js/auto'
 import api from '../../api/request'
@@ -99,11 +114,17 @@ const trendLoading = ref(true)
 const yardLoading = ref(true)
 
 const yardZones = ref([])
-const yardSlotMap = reactive({})
-const yardRefs = reactive({})
+const yardGrid = reactive({})
 const trendCanvas = ref(null)
 const appStore = useAppStore()
 let chartInstance = null
+
+function statusColor(s: string) {
+  return { occupied: '#2563eb', empty: '#e2e8f0', reserved: '#f97316', maintenance: '#ef4444' }[s] || '#94a3b8'
+}
+function statusLabel(s: string) {
+  return { occupied: '已占用', empty: '空闲', reserved: '预留', maintenance: '维护中' }[s] || s
+}
 
 const statCards = reactive([
   { label: '场内集装箱总量', value: '--', color: 'blue', icon: 'fas fa-box', trend: 0, sub: '加载中...' },
@@ -113,10 +134,6 @@ const statCards = reactive([
   { label: '待执行调度指令', value: '--', color: 'purple', icon: 'fas fa-tasks', trend: 0, sub: '加载中...' },
   { label: '平均作业时长', value: '--', color: 'red', icon: 'fas fa-clock', trend: 0, sub: '加载中...' },
 ])
-
-function setYardRef(zoneId, el) {
-  if (el) yardRefs[zoneId] = el
-}
 
 function buildTrendChart(hourlySea, hourlyLand) {
   if (!trendCanvas.value) return
@@ -143,28 +160,6 @@ function buildTrendChart(hourlySea, hourlyLand) {
       scales: { y: { beginAtZero: true } },
     },
   })
-}
-
-function renderYardMap(zoneId) {
-  const container = yardRefs[zoneId]
-  if (!container) return
-  container.innerHTML = ''
-  const slots = yardSlotMap[zoneId] || []
-  if (!slots.length) {
-    container.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px;">无箱位数据</div>'
-    return
-  }
-  for (const slot of slots) {
-    const el = document.createElement('div')
-    el.className = `yard-slot ${slot.slot_status || 'empty'}`
-    el.innerHTML = `<div class="slot-id">${slot.slot_id?.slice(-4) || '--'}</div>`
-    if (slot.slot_status === 'occupied') el.innerHTML += '<div class="slot-status">箱</div>'
-    el.onclick = () => {
-      const texts = { empty: '空闲', occupied: '已占用', reserved: '预留', maintenance: '维护中' }
-      appStore.showToast(`箱位 ${slot.slot_id} | 状态：${texts[slot.slot_status] || slot.slot_status}`, 'info')
-    }
-    container.appendChild(el)
-  }
 }
 
 async function fetchDashboardData() {
@@ -256,11 +251,12 @@ async function fetchYardData() {
 
     const allSlots = slotsRes.data?.items || []
     for (const z of yardZones.value) {
-      yardSlotMap[z.zone_id] = allSlots.filter(s => s.zone_id === z.zone_id)
-    }
-    await nextTick()
-    for (const z of yardZones.value) {
-      renderYardMap(z.zone_id)
+      const zoneSlots = allSlots.filter((s) => s.zone_id === z.zone_id)
+      const maxRow = zoneSlots.length ? Math.max(...zoneSlots.map((s) => s.row_num)) : 0
+      const maxCol = zoneSlots.length ? Math.max(...zoneSlots.map((s) => s.col_num)) : 0
+      const rows = Array.from({ length: maxRow }, () => Array(maxCol).fill(null))
+      for (const s of zoneSlots) { rows[s.row_num - 1][s.col_num - 1] = s }
+      yardGrid[z.zone_id] = { rows, maxCol }
     }
   } catch {
     yardZones.value = []

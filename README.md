@@ -54,17 +54,10 @@ mis/
 ├── tests/
 │   └── test_optimistic_lock.py        # 乐观锁并发压测脚本
 ├── database/
-│   ├── schema.sql                      # 全量建库脚本（始终最新版本）
+│   ├── schema.sql                      # 全量建库脚本（DDL + 堆场布局）
 │   ├── database_er_diagram.png         # 数据库 ER 关系图
-│   ├── migrations/                     # 增量迁移脚本
-│   │   ├── 001_optimize_v2.sql         # V2 架构升级（主数据表 + 乐观锁 + 分区）
-│   │   ├── 002_drop_occupied_slots.sql # V3 移除反范式字段
-│   │   ├── 003_partition_maintenance.sql # 分区自动维护
-│   │   ├── 004_surrogate_pk.sql         # INT代理键 + 位置FK约束
-│   │   └── 005_password_nullable.sql    # 密码字段改为可为空
 │   └── seeds/
-│       ├── yard_setup.sql               # 堆场物理布局初始化
-│       ├── dev_seed.sql                 # V2 架构测试数据(开发用)
+│       ├── dev_seed.sql                 # 开发用全量 mock 数据
 │       └── cleanup_test_data.sql        # 清理测试数据
 ├── docs/
 │   └── 数据库设计文档.md
@@ -202,12 +195,8 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 #### 1. 初始化数据库
 
 ```bash
-# 新环境：全量建库
+# 全量建库（新环境）
 mysql -u root -p < database/schema.sql
-
-# 已有数据库：增量升级
-docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/migrations/001_optimize_v2.sql
-```
 
 这将创建 `ContainerTerminalDB` 数据库，包含 21 张表、3 个视图、4 个存储过程、2 个触发器和预置种子数据。
 
@@ -491,12 +480,6 @@ yard_slots.slot_id ──→ container_move_logs.from_slot_id
 # 新环境：导入全量建库脚本（始终最新版本）
 docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/schema.sql
 
-# 已有数据库：按顺序执行增量迁移
-docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/migrations/001_optimize_v2.sql
-docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/migrations/002_drop_occupied_slots.sql
-docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/migrations/003_partition_maintenance.sql
-docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/migrations/004_surrogate_pk.sql
-
 # 导入测试种子数据
 docker exec -i yard-mysql mysql -u root -proot ContainerTerminalDB < database/seeds/dev_seed.sql
 
@@ -541,11 +524,7 @@ main ← feat/db-architecture-optimization   (DB V2 架构升级)
 |------|------|
 | [数据库设计文档](docs/数据库设计文档.md) | 完整 21 张表结构、字段说明、过程-数据类矩阵、V2 架构变动 |
 | [ER 关系图](database/database_er_diagram.png) | 实体关系图 |
-| [schema.sql](database/schema.sql) | 全量建库脚本（始终最新版本） |
-| [001_optimize_v2.sql](database/migrations/001_optimize_v2.sql) | 迁移：V2 架构升级（主数据表 + 乐观锁 + 分区） |
-| [002_drop_occupied_slots.sql](database/migrations/002_drop_occupied_slots.sql) | 迁移：移除反范式字段 |
-| [003_partition_maintenance.sql](database/migrations/003_partition_maintenance.sql) | 迁移：分区自动维护 |
-| [004_surrogate_pk.sql](database/migrations/004_surrogate_pk.sql) | 迁移：INT代理键 + 位置FK约束 |
+| [schema.sql](database/schema.sql) | 全量建库脚本（DDL + 堆场布局，一键部署） |
 | [dev_seed.sql](database/seeds/dev_seed.sql) | 测试种子数据（含轨迹流水） |
 | [cleanup_test_data.sql](database/seeds/cleanup_test_data.sql) | 清理测试数据脚本 |
 | [test_optimistic_lock.py](tests/test_optimistic_lock.py) | 乐观锁并发压测脚本 |

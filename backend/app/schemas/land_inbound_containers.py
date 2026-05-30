@@ -31,7 +31,7 @@ class LandInboundStatusUpdate(BaseModel):
 
 class LandInboundResponse(BaseModel):
     container_id: str
-    container_type: str
+    container_type: str | None = None
     container_status: str | None = None
     truck_plate: str | None = None
     driver_name: str | None = None

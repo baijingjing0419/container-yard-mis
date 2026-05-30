@@ -24,5 +24,5 @@ async def system_status(db: AsyncSession = Depends(get_db)):
     return {
         "admin_exists": admin_count > 0,
         "yard_configured": yard_count > 0,
-        "setup_required": admin_count == 0 or yard_count == 0,
+        "setup_required": admin_count == 0,
     }

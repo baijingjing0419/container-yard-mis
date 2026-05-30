@@ -29,7 +29,7 @@ class SeaOutboundStatusUpdate(BaseModel):
 
 class SeaOutboundResponse(BaseModel):
     container_id: str
-    container_type: str
+    container_type: str | None = None
     container_status: str | None = None
     ship_id: str
     voyage_no: str
