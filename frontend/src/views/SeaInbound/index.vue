@@ -3,9 +3,13 @@
     <div class="page-title">海侧进箱作业</div>
     <div class="page-subtitle">管理海运进口集装箱卸船入场全流程</div>
 
-    <div class="alert alert-info">
+    <div class="alert alert-info" v-if="activePlan">
       <i class="fas fa-info-circle"></i>
-      <span>当前作业：航次 <strong>COSCO-2405</strong> 正在卸船，预计剩余作业时间 2小时35分钟</span>
+      <span>当前作业：航次 <strong>{{ activePlan.voyage_no }}</strong> ({{ activePlan.ship_id }}) 正在卸船</span>
+    </div>
+    <div class="alert alert-info" v-else>
+      <i class="fas fa-info-circle"></i>
+      <span>当前无进行中的海侧作业计划</span>
     </div>
 
     <div class="flow-diagram">
@@ -113,12 +117,14 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { getSeaInboundList, createSeaInbound } from '../../api/seaInbound'
+import api from '../../api/request'
 import BaseModal from '../../components/BaseModal.vue'
 import StatusBadge from '../../components/StatusBadge.vue'
 
 const list = ref([])
 const loading = ref(true)
 const showModal = ref(false)
+const activePlan = ref(null)
 
 const defaultForm = {
   container_id: '', container_type: '40HQ', ship_id: '', voyage_no: '',
@@ -165,5 +171,12 @@ async function handleSave() {
   } catch (_) { /* error already handled by interceptor */ }
 }
 
-onMounted(fetchData)
+async function fetchActivePlan() {
+  try {
+    const { data } = await api.get('/sea-plans', { params: { plan_status: 'in_progress', page_size: 1 } })
+    activePlan.value = data?.items?.[0] || null
+  } catch { activePlan.value = null }
+}
+
+onMounted(() => { fetchData(); fetchActivePlan() })
 </script>

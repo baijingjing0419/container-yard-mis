@@ -164,10 +164,9 @@ async function fetchData() {
 }
 
 function openCreateDialog() {
-  // 自动生成指令号
   const now = new Date()
-  form.order_id = 'DI-' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-' + String(Math.floor(Math.random()*1000)).padStart(3,'0')
-  form.issue_time = new Date().toISOString()
+  form.order_id = 'DI-' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-' + String(now.getSeconds()).padStart(2,'0') + String(now.getMilliseconds()).padStart(3,'0')
+  form.issue_time = now.toISOString()
   // 重置其他字段
   form.order_type = 'sea_inbound'
   form.execute_dept = '岸桥班组'
