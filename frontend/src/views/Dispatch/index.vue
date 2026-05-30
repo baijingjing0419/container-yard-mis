@@ -35,12 +35,12 @@
               <tr>
                 <th>指令号</th><th>指令类型</th><th>下达时间</th><th>执行部门</th>
                 <th>箱号</th><th>原位置</th><th>目标位置</th><th>计划完成</th>
-                <th>执行状态</th><th>操作</th>
+                <th>执行状态</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-if="loading"><td colspan="10" style="text-align:center;padding:30px;color:#94a3b8;">加载中...</td></tr>
-              <tr v-else-if="!list.length"><td colspan="10" style="text-align:center;padding:30px;color:#94a3b8;">暂无数据</td></tr>
+              <tr v-if="loading"><td colspan="9" style="text-align:center;padding:30px;color:#94a3b8;">加载中...</td></tr>
+              <tr v-else-if="!list.length"><td colspan="9" style="text-align:center;padding:30px;color:#94a3b8;">暂无数据</td></tr>
               <tr v-for="{ data: item } in virtualList" :key="item.order_id">
                 <td><strong>{{ item.order_id }}</strong></td>
                 <td>{{ orderTypeText(item.order_type) }}</td>
@@ -52,10 +52,6 @@
                 <td>{{ item.planned_finish_time ? item.planned_finish_time.substring(0,16) : '--' }}</td>
                 <td>
                   <StatusBadge :status="execStatusClass(item.execution_status)" :text="execStatusText(item.execution_status)" />
-                </td>
-                <td>
-                  <button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button>
-                  <button class="btn btn-sm btn-secondary"><i class="fas fa-edit"></i></button>
                 </td>
               </tr>
             </tbody>

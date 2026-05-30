@@ -33,10 +33,10 @@
       <div class="card-body" style="padding:0;">
         <div v-bind="containerProps" class="virtual-scroll-container">
           <table class="data-table">
-            <thead><tr><th>箱号</th><th>箱型</th><th>当前状态</th><th>当前堆位</th><th>历史位置</th><th>入场时间</th><th>预计出场</th><th>停留时长</th><th>船名航次</th><th>操作</th></tr></thead>
+            <thead><tr><th>箱号</th><th>箱型</th><th>当前状态</th><th>当前堆位</th><th>历史位置</th><th>入场时间</th><th>预计出场</th><th>停留时长</th><th>船名航次</th></tr></thead>
             <tbody>
-              <tr v-if="loading"><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px;">加载中...</td></tr>
-              <tr v-else-if="!list.length"><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px;">暂无数据</td></tr>
+              <tr v-if="loading"><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px;">加载中...</td></tr>
+              <tr v-else-if="!list.length"><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px;">暂无数据</td></tr>
               <tr v-for="{ data: item } in virtualList" :key="item.inventory_id">
                 <td><strong style="color:#1e40af;">{{ item.container_id }}</strong></td>
                 <td>{{ item.container_type }}</td>
@@ -47,11 +47,6 @@
                 <td>{{ item.expected_exit_time ? item.expected_exit_time.substring(0,10) : '--' }}</td>
                 <td>{{ item.dwell_time_hours ? item.dwell_time_hours+'小时' : '--' }}</td>
                 <td>{{ item.ship_name || item.ship_id || '--' }}</td>
-                <td>
-                  <button class="btn btn-sm btn-secondary" @click="openMoveLogs(item.container_id)" title="移动轨迹"><i class="fas fa-route"></i></button>
-                  <button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button>
-                  <button class="btn btn-sm btn-secondary"><i class="fas fa-map-marker-alt"></i></button>
-                </td>
               </tr>
             </tbody>
           </table>

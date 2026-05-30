@@ -9,10 +9,10 @@
       </div>
       <div class="card-body" style="padding:0;">
         <table class="data-table">
-          <thead><tr><th>航次号</th><th>船舶名称</th><th>靠泊时间</th><th>离泊时间</th><th>入场箱量</th><th>出场箱量</th><th>作业进度</th><th>状态</th><th>操作</th></tr></thead>
+          <thead><tr><th>航次号</th><th>船舶名称</th><th>靠泊时间</th><th>离泊时间</th><th>入场箱量</th><th>出场箱量</th><th>作业进度</th><th>状态</th></tr></thead>
           <tbody>
-            <tr v-if="loading"><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px;">加载中...</td></tr>
-            <tr v-else-if="!list.length"><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px;">暂无计划数据</td></tr>
+            <tr v-if="loading"><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px;">加载中...</td></tr>
+            <tr v-else-if="!list.length"><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px;">暂无计划数据</td></tr>
             <tr v-for="item in list" :key="item.plan_id">
               <td><strong>{{ item.voyage_no }}</strong></td>
               <td>{{ item.ship_name || item.ship_id }}</td>
@@ -27,7 +27,6 @@
                 <span style="font-size:11px;color:#64748b;">{{ item.completion_rate || 0 }}%</span>
               </td>
               <td><StatusBadge :status="planStatusClass(item.plan_status)" :text="planStatusText(item.plan_status)" /></td>
-              <td><button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button><button class="btn btn-sm btn-secondary"><i class="fas fa-edit"></i></button></td>
             </tr>
           </tbody>
         </table>

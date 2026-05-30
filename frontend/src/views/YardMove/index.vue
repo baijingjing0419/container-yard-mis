@@ -13,10 +13,10 @@
       </div>
       <div class="card-body" style="padding:0;">
         <table class="data-table">
-          <thead><tr><th>作业记录号</th><th>作业类型</th><th>箱号</th><th>原堆位</th><th>目标堆位</th><th>作业机械</th><th>作业人员</th><th>开始时间</th><th>结束时间</th><th>作业状态</th><th>操作</th></tr></thead>
+          <thead><tr><th>作业记录号</th><th>作业类型</th><th>箱号</th><th>原堆位</th><th>目标堆位</th><th>作业机械</th><th>作业人员</th><th>开始时间</th><th>结束时间</th><th>作业状态</th></tr></thead>
           <tbody>
-            <tr v-if="loading"><td colspan="11" style="text-align:center;color:#94a3b8;padding:30px;">加载中...</td></tr>
-            <tr v-else-if="!list.length"><td colspan="11" style="text-align:center;color:#94a3b8;padding:30px;">暂无数据</td></tr>
+            <tr v-if="loading"><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px;">加载中...</td></tr>
+            <tr v-else-if="!list.length"><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px;">暂无数据</td></tr>
             <tr v-for="item in list" :key="item.record_id">
               <td><strong>{{ item.record_id }}</strong></td>
               <td>{{ opTypeText(item.operation_type) }}</td>
@@ -28,7 +28,6 @@
               <td>{{ item.start_time ? item.start_time.substring(0,16) : '--' }}</td>
               <td>{{ item.end_time ? item.end_time.substring(0,16) : '--' }}</td>
               <td><StatusBadge :status="opStatusClass(item.operation_status)" :text="opStatusText(item.operation_status)" /></td>
-              <td><button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button></td>
             </tr>
           </tbody>
         </table>

@@ -12,10 +12,10 @@
       </div>
       <div class="card-body" style="padding:0;">
         <table class="data-table">
-          <thead><tr><th>箱号</th><th>箱型</th><th>车牌号码</th><th>司机信息</th><th>提箱单证</th><th>原堆位</th><th>出场时间</th><th>放行状态</th><th>操作</th></tr></thead>
+          <thead><tr><th>箱号</th><th>箱型</th><th>车牌号码</th><th>司机信息</th><th>提箱单证</th><th>原堆位</th><th>出场时间</th><th>放行状态</th></tr></thead>
           <tbody>
-            <tr v-if="loading"><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px;">加载中...</td></tr>
-            <tr v-else-if="!list.length"><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px;">暂无数据</td></tr>
+            <tr v-if="loading"><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px;">加载中...</td></tr>
+            <tr v-else-if="!list.length"><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px;">暂无数据</td></tr>
             <tr v-for="item in list" :key="item.container_id">
               <td><strong style="color:#1e40af;">{{ item.container_id }}</strong></td>
               <td>{{ item.container_type }}</td>
@@ -25,7 +25,6 @@
               <td>{{ item.slot_label || item.original_slot_id || '--' }}</td>
               <td>{{ item.exit_time ? item.exit_time.substring(0,16) : '--' }}</td>
               <td><StatusBadge :status="item.process_status==='released'?'completed':'pending'" :text="item.process_status==='released'?'已放行':item.process_status||'--'" /></td>
-              <td><button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button></td>
             </tr>
           </tbody>
         </table>
