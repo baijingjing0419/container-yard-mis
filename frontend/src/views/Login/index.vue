@@ -36,7 +36,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '../../store/user'
+import { useUserStore, getDefaultRoute } from '../../store/user'
 import { useAppStore } from '../../store/app'
 import api from '../../api/request'
 
@@ -47,7 +47,8 @@ const appStore = useAppStore()
 const presetUsers = [
   { username: 'dispatcher',  label: 'dispatcher — 中控调度员 (调度中心)' },
   { username: 'gate_clerk',  label: 'gate_clerk — 闸口管理员 (闸口管理)' },
-  { username: 'yard_op',     label: 'yard_op — 堆场管理员 (堆场管理)' },
+  { username: 'qc_op',       label: 'qc_op — 岸桥操作员 (岸桥班组)' },
+  { username: 'yc_op',       label: 'yc_op — 场桥操作员 (场桥班组)' },
   { username: 'admin',       label: 'admin — 系统管理员 (信息中心)' },
 ]
 
@@ -71,7 +72,7 @@ async function handleLogin() {
       department: data.department || '',
     })
     appStore.fetchNotifications()
-    router.push('/dashboard')
+    router.push(getDefaultRoute(data.role))
   } catch (e) {
     error.value = e?.response?.data?.detail || '登录失败，请重试'
   } finally {

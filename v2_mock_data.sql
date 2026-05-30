@@ -121,7 +121,8 @@ REPLACE INTO dispatch_orders (order_id, order_type, issue_time, issue_dept, exec
 REPLACE INTO users (user_id, username, password_hash, real_name, role, department, phone, email, status) VALUES
 ('U001', 'dispatcher',  'hash_placeholder', '李明',  'dispatcher', '调度中心', '13800000001', 'dispatcher@yard.local',  'active'),
 ('U002', 'gate_clerk',  'hash_placeholder', '王芳',  'gate_clerk',  '闸口管理', '13800000002', 'gate@yard.local',       'active'),
-('U003', 'yard_op',     'hash_placeholder', '张强',  'operator',    '堆场管理', '13800000003', 'yard@yard.local',       'active'),
+('U003A', 'qc_op',      'hash_placeholder', '赵岸',  'qc_op',       '岸桥班组', '13800000003', 'qc_op@yard.local',      'active'),
+('U003B', 'yc_op',      'hash_placeholder', '钱场',  'yc_op',       '场桥班组', '13800000005', 'yc_op@yard.local',      'active'),
 ('U004', 'admin',       'hash_placeholder', '管理员','admin',       '信息中心', '13800000004', 'admin@yard.local',      'active');
 
 SET FOREIGN_KEY_CHECKS = 1;

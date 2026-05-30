@@ -2,10 +2,10 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 
 const ROLE_LABELS: Record<string, string> = {
-  dispatcher: '中控调度员', gate_clerk: '闸口管理员', yard_op: '堆场管理员', admin: '系统管理员',
+  dispatcher: '中控调度员', gate_clerk: '闸口管理员', qc_op: '岸桥操作员', yc_op: '场桥操作员', admin: '系统管理员',
 }
 const ROLE_DEPTS: Record<string, string> = {
-  dispatcher: '调度中心', gate_clerk: '闸口管理', yard_op: '堆场管理', admin: '信息中心',
+  dispatcher: '调度中心', gate_clerk: '闸口管理', qc_op: '岸桥班组', yc_op: '场桥班组', admin: '信息中心',
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -48,3 +48,14 @@ export const useUserStore = defineStore('user', () => {
 
   return { username, realName, role, department, shift, loggedIn, displayName, roleLabel, login, restoreSession, logout }
 })
+
+export function getDefaultRoute(role: string): string {
+  const map: Record<string, string> = {
+    admin: '/dashboard',
+    dispatcher: '/dispatch',
+    gate_clerk: '/land/inbound',
+    qc_op: '/sea/inbound',
+    yc_op: '/yard/move',
+  }
+  return map[role] || '/dashboard'
+}

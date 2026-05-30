@@ -6,64 +6,64 @@
       <p>Container Terminal Yard Management</p>
     </div>
     <div class="nav-menu">
-      <div class="nav-section-title">总览</div>
-      <router-link to="/dashboard" class="nav-item">
+      <div v-if="showOverviewSection" class="nav-section-title">总览</div>
+      <router-link v-if="hasPermission('/dashboard')" to="/dashboard" class="nav-item">
         <i class="fas fa-chart-line"></i>
         <span>运营总览 Dashboard</span>
       </router-link>
 
-      <div class="nav-section-title">海侧作业管理</div>
-      <router-link to="/sea/inbound" class="nav-item">
+      <div v-if="showSeaSection" class="nav-section-title">海侧作业管理</div>
+      <router-link v-if="hasPermission('/sea/inbound')" to="/sea/inbound" class="nav-item">
         <i class="fas fa-arrow-down"></i>
         <span>海侧进箱作业</span>
       </router-link>
-      <router-link to="/sea/outbound" class="nav-item">
+      <router-link v-if="hasPermission('/sea/outbound')" to="/sea/outbound" class="nav-item">
         <i class="fas fa-arrow-up"></i>
         <span>海侧出场作业</span>
       </router-link>
-      <router-link to="/sea/plan" class="nav-item">
+      <router-link v-if="hasPermission('/sea/plan')" to="/sea/plan" class="nav-item">
         <i class="fas fa-calendar-alt"></i>
         <span>海侧作业计划</span>
       </router-link>
 
-      <div class="nav-section-title">陆侧作业管理</div>
-      <router-link to="/land/inbound" class="nav-item">
+      <div v-if="showLandSection" class="nav-section-title">陆侧作业管理</div>
+      <router-link v-if="hasPermission('/land/inbound')" to="/land/inbound" class="nav-item">
         <i class="fas fa-truck-loading"></i>
         <span>陆侧进箱作业</span>
       </router-link>
-      <router-link to="/land/outbound" class="nav-item">
+      <router-link v-if="hasPermission('/land/outbound')" to="/land/outbound" class="nav-item">
         <i class="fas fa-truck-moving"></i>
         <span>陆侧出场作业</span>
       </router-link>
-      <router-link to="/land/plan" class="nav-item">
+      <router-link v-if="hasPermission('/land/plan')" to="/land/plan" class="nav-item">
         <i class="fas fa-clipboard-list"></i>
         <span>陆侧作业计划</span>
       </router-link>
 
-      <div class="nav-section-title">场内管理</div>
-      <router-link to="/yard/storage" class="nav-item">
+      <div v-if="showYardSection" class="nav-section-title">场内管理</div>
+      <router-link v-if="hasPermission('/yard/storage')" to="/yard/storage" class="nav-item">
         <i class="fas fa-warehouse"></i>
         <span>集装箱堆存管理</span>
       </router-link>
-      <router-link to="/yard/move" class="nav-item">
+      <router-link v-if="hasPermission('/yard/move')" to="/yard/move" class="nav-item">
         <i class="fas fa-exchange-alt"></i>
         <span>场内调箱作业</span>
       </router-link>
-      <router-link to="/dispatch" class="nav-item">
+      <router-link v-if="hasPermission('/dispatch')" to="/dispatch" class="nav-item">
         <i class="fas fa-broadcast-tower"></i>
         <span>中控调度指令</span>
       </router-link>
 
-      <div class="nav-section-title">查询统计</div>
-      <router-link to="/query" class="nav-item">
+      <div v-if="showQuerySection" class="nav-section-title">查询统计</div>
+      <router-link v-if="hasPermission('/query')" to="/query" class="nav-item">
         <i class="fas fa-search"></i>
         <span>箱量/状态查询</span>
       </router-link>
-      <router-link to="/statistics" class="nav-item">
+      <router-link v-if="hasPermission('/statistics')" to="/statistics" class="nav-item">
         <i class="fas fa-chart-bar"></i>
         <span>作业效率统计</span>
       </router-link>
-      <router-link to="/reports" class="nav-item">
+      <router-link v-if="hasPermission('/reports')" to="/reports" class="nav-item">
         <i class="fas fa-file-alt"></i>
         <span>报表中心</span>
       </router-link>
@@ -122,7 +122,7 @@
   </main>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
@@ -139,6 +139,38 @@ function handleLogout() {
   userStore.logout()
   router.push('/login')
 }
+
+// 启动时一次性构建 path → roles 的 Map 字典，hasPermission 查询从 O(n) 降为 O(1)
+const permissionsMap = new Map<string, string[]>()
+router.getRoutes().forEach(r => {
+  if (r.meta?.roles) {
+    permissionsMap.set(r.path, r.meta.roles as string[])
+  }
+})
+
+function hasPermission(path: string): boolean {
+  const roles = permissionsMap.get(path)
+  if (!roles || roles.length === 0) return true
+  return roles.includes(userStore.role)
+}
+
+const showOverviewSection = computed(() => hasPermission('/dashboard'))
+
+const showSeaSection = computed(() =>
+  hasPermission('/sea/inbound') || hasPermission('/sea/outbound') || hasPermission('/sea/plan')
+)
+
+const showLandSection = computed(() =>
+  hasPermission('/land/inbound') || hasPermission('/land/outbound') || hasPermission('/land/plan')
+)
+
+const showYardSection = computed(() =>
+  hasPermission('/yard/storage') || hasPermission('/yard/move') || hasPermission('/dispatch')
+)
+
+const showQuerySection = computed(() =>
+  hasPermission('/query') || hasPermission('/statistics') || hasPermission('/reports')
+)
 
 onMounted(() => { appStore.fetchNotifications() })
 </script>
