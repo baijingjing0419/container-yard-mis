@@ -13,20 +13,22 @@ export const useUserStore = defineStore('user', () => {
   const realName = ref('')
   const role = ref('')
   const department = ref('')
+  const token = ref('')
   const loggedIn = ref(false)
 
   const displayName = computed(() => realName.value || username.value || '未登录')
   const roleLabel = computed(() => ROLE_LABELS[role.value] || role.value)
   const shift = ref('当班')
 
-  function login(user: { username: string; realName?: string; role: string; department?: string }) {
+  function login(user: { username: string; realName?: string; role: string; department?: string; accessToken?: string }) {
     username.value = user.username
     realName.value = user.realName || user.username
     role.value = user.role
     department.value = user.department || ROLE_DEPTS[user.role] || ''
+    token.value = user.accessToken || ''
     loggedIn.value = true
     localStorage.setItem('yard_user', JSON.stringify({
-      username: user.username, realName: user.realName, role: user.role, department: user.department,
+      username: user.username, realName: user.realName, role: user.role, department: user.department, accessToken: user.accessToken,
     }))
   }
 
@@ -41,12 +43,12 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function logout() {
-    username.value = ''; realName.value = ''; role.value = ''; department.value = ''
+    username.value = ''; realName.value = ''; role.value = ''; department.value = ''; token.value = ''
     loggedIn.value = false
     localStorage.removeItem('yard_user')
   }
 
-  return { username, realName, role, department, shift, loggedIn, displayName, roleLabel, login, restoreSession, logout }
+  return { username, realName, role, department, token, shift, loggedIn, displayName, roleLabel, login, restoreSession, logout }
 })
 
 export function getDefaultRoute(role: string): string {

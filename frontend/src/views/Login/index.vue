@@ -27,7 +27,7 @@
       </button>
 
       <p style="text-align:center;color:#94a3b8;font-size:12px;margin-top:20px;">
-        预置账号，点击直接登录（后续接入 Auth 模块）
+        预置账号，点击登录（已接入 JWT 认证）
       </p>
     </div>
   </div>
@@ -45,11 +45,11 @@ const userStore = useUserStore()
 const appStore = useAppStore()
 
 const presetUsers = [
-  { username: 'dispatcher',  label: 'dispatcher — 中控调度员 (调度中心)' },
-  { username: 'gate_clerk',  label: 'gate_clerk — 闸口管理员 (闸口管理)' },
-  { username: 'qc_op',       label: 'qc_op — 岸桥操作员 (岸桥班组)' },
-  { username: 'yc_op',       label: 'yc_op — 场桥操作员 (场桥班组)' },
-  { username: 'admin',       label: 'admin — 系统管理员 (信息中心)' },
+  { username: 'dispatcher', label: '中控调度员 (调度中心)' },
+  { username: 'gate_clerk', label: '闸口管理员 (闸口管理)' },
+  { username: 'qc_op',      label: '岸桥操作员 (岸桥班组)' },
+  { username: 'yc_op',      label: '场桥操作员 (场桥班组)' },
+  { username: 'admin',      label: '系统管理员 (信息中心)' },
 ]
 
 const selectedUser = ref('')
@@ -70,6 +70,7 @@ async function handleLogin() {
       realName: data.real_name || data.username,
       role: data.role,
       department: data.department || '',
+      accessToken: data.access_token,
     })
     appStore.fetchNotifications()
     router.push(getDefaultRoute(data.role))

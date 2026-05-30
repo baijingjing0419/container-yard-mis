@@ -6,6 +6,19 @@ const api: AxiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+api.interceptors.request.use((config) => {
+  const saved = localStorage.getItem('yard_user')
+  if (saved) {
+    try {
+      const u = JSON.parse(saved)
+      if (u.accessToken) {
+        config.headers.Authorization = `Bearer ${u.accessToken}`
+      }
+    } catch { /* ignore */ }
+  }
+  return config
+})
+
 api.interceptors.response.use(
   (res: AxiosResponse) => res,
   (error) => {
