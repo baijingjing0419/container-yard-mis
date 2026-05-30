@@ -34,19 +34,21 @@ mis/
     ├── Dockerfile                     # 生产镜像 (Nginx)
     ├── Dockerfile.dev                 # 开发镜像 (Vite dev server)
     ├── nginx.conf                     # Nginx 反向代理配置
+    ├── .dockerignore
     ├── package.json
     ├── tsconfig.json                  # TypeScript 配置
-    ├── vite.config.js                 # Vite + API 代理
+    ├── vite.config.js                 # Vite + API 代理 (环境变量)
     ├── tailwind.config.js
     └── src/
-        ├── main.js                    # Vue 入口 (Pinia 注册)
+        ├── main.ts                    # Vue 入口 (Pinia 注册)
         ├── env.d.ts                   # TypeScript 类型声明
-        ├── api/                       # Axios 请求层 + TypeScript
-        ├── store/                     # Pinia 状态管理
-        ├── components/                # 公共组件
-        ├── layout/                    # MainLayout (侧边栏+顶栏)
+        ├── constants.ts               # 统一状态映射常量
+        ├── api/                       # Axios 请求层 (全部 .ts)
+        ├── store/                     # Pinia 状态管理 (user + app + toast)
+        ├── components/                # 公共组件 (BaseModal, StatusBadge)
+        ├── layout/                    # MainLayout (侧边栏+顶栏+Toast)
         ├── router/                    # Vue Router (懒加载)
-        └── views/                     # 13 个业务视图 (含虚拟滚动)
+        └── views/                     # 13 个业务视图 (虚拟滚动 + API 驱动)
 ```
 
 ## 环境要求
@@ -147,13 +149,14 @@ npm run dev
 
 ### 前端
 - **框架**: Vue 3 (Composition API + `<script setup>`)
-- **状态管理**: Pinia
-- **类型支持**: TypeScript (逐步迁移)
-- **构建工具**: Vite 5 (API 代理 + 热更新)
-- **路由**: Vue Router 4 (懒加载)
+- **状态管理**: Pinia (user / app / toast 通知)
+- **类型支持**: TypeScript (API 层 + Store 层全部迁移)
+- **构建工具**: Vite 5 (API 代理 + 热更新 + 环境变量)
+- **路由**: Vue Router 4 (全部懒加载)
 - **性能**: @vueuse/core 虚拟滚动 (千级数据无卡顿)
 - **HTTP 客户端**: Axios (拦截器统一错误处理)
-- **图表**: Chart.js 4
+- **图表**: Chart.js 4 (动态数据驱动)
+- **通知**: Toast 通知系统 (替代 alert 弹窗)
 - **CSS**: Tailwind CSS 3 + 自定义 CSS 变量
 - **图标**: Font Awesome 6 (CDN)
 
@@ -167,6 +170,24 @@ npm run dev
 - 3 个视图 (综合查询 / 今日汇总 / 利用率)
 - 4 个存储过程 + 2 个触发器
 - 14 个查询优化索引
+
+## 页面功能
+
+| 页面 | 路由 | 核心功能 |
+|------|------|----------|
+| 运营总览 | `/dashboard` | 6 个实时统计卡片 + 24h 趋势图 + 堆场状态图 + 告警时间线 |
+| 海侧进箱 | `/sea/inbound` | 卸船入场全流程管理，动态显示当前作业计划 |
+| 海侧出场 | `/sea/outbound` | 装船出场全流程管理，动态显示当前作业计划 |
+| 海侧计划 | `/sea/plan` | 海侧作业计划编排与管理 |
+| 陆侧进箱 | `/land/inbound` | 集卡进闸全流程，实时闸口通行统计 |
+| 陆侧出场 | `/land/outbound` | 集卡出闸提箱管理 |
+| 陆侧计划 | `/land/plan` | 陆侧作业计划编排与管理 |
+| 堆存管理 | `/yard/storage` | 集装箱台账 + 堆场区域利用率 (虚拟滚动) |
+| 调箱作业 | `/yard/move` | 场内翻箱/归位作业管理 |
+| 调度指令 | `/dispatch` | 中控调度指令下发与执行追踪 (虚拟滚动) |
+| 箱量查询 | `/query` | 按箱号/船名/堆位多维度查询 (虚拟滚动) |
+| 效率统计 | `/statistics` | 班组效率 + 月度趋势 + 设备利用率 (动态图表) |
+| 报表中心 | `/reports` | 系统日志与报表历史查看 |
 
 ## API 模块一览
 
